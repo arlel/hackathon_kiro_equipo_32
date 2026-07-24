@@ -1,17 +1,19 @@
 import json
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
+from app.core.database import async_session
+from app.models.game import Game, GamePlayer
 from app.ws.room_manager import room_manager
 
 router = APIRouter()
 
 FORMAT_LIFE = {
     "commander": 40,
-    "standard": 20,
-    "modern": 20,
-    "pauper": 20,
-    "custom": 20,
+    "20vida": 20,
+    "custom": 20,  # Will be overridden by starting_life param
 }
 
 
@@ -24,12 +26,43 @@ async def websocket_endpoint(
     commander_name: str = Query(""),
     commander_image: str = Query(""),
     format: str = Query("commander"),
+    partner_name: str = Query(""),
+    partner_image: str = Query(""),
+    poison_enabled: str = Query("false"),
+    turn_counter_enabled: str = Query("false"),
+    starting_life: int = Query(0),
+    deck_id: str = Query(""),
 ):
     await websocket.accept()
 
-    starting_life = FORMAT_LIFE.get(format, 40)
-    room = room_manager.get_or_create_room(room_code, format, starting_life)
-    room_manager.add_player(room, player_id, player_name, commander_name, commander_image, websocket)
+    actual_starting_life = starting_life if starting_life > 0 else FORMAT_LIFE.get(format, 40)
+    room = room_manager.get_or_create_room(
+        room_code,
+        format,
+        actual_starting_life,
+        poison_enabled=(poison_enabled.lower() == "true"),
+        turn_counter_enabled=(turn_counter_enabled.lower() == "true"),
+    )
+
+    # Room full validation: reject if 12 connected players and not a reconnection
+    MAX_PLAYERS = 12
+    connected_count = sum(1 for p in room.players.values() if p.is_connected)
+    is_reconnection = player_id in room.players
+
+    if connected_count >= MAX_PLAYERS and not is_reconnection:
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": "La sala está llena (máximo 12 jugadores)",
+        }))
+        await websocket.close(code=4001)
+        return
+
+    room_manager.add_player(
+        room, player_id, player_name, commander_name, commander_image, websocket,
+        partner_name=partner_name,
+        partner_image=partner_image,
+        deck_id=deck_id if deck_id else None,
+    )
 
     # Broadcast updated state to all players
     await room_manager.broadcast(room)
@@ -45,19 +78,105 @@ async def websocket_endpoint(
                 amount = message.get("amount", 0)
                 room_manager.adjust_life(room, target_id, amount)
 
+            elif action == "adjust_poison":
+                target_id = message.get("targetId")
+                amount = message.get("amount", 0)
+                room_manager.adjust_poison(room, target_id, amount)
+
             elif action == "commander_damage":
-                from_id = message.get("fromId")
+                commander_source_id = message.get("commanderSourceId")
                 to_id = message.get("toId")
                 amount = message.get("amount", 0)
-                room_manager.apply_commander_damage(room, from_id, to_id, amount)
+                room_manager.apply_commander_damage_v2(room, commander_source_id, to_id, amount)
+
+            elif action == "select_starter":
+                starter_id = room_manager.select_random_starter(room)
+                if starter_id:
+                    starter_name = room.players[starter_id].username
+                    starter_msg = json.dumps({
+                        "type": "starter_selected",
+                        "playerId": starter_id,
+                        "playerName": starter_name,
+                    })
+                    for player in room.players.values():
+                        if player.websocket and player.is_connected:
+                            try:
+                                await player.websocket.send_text(starter_msg)
+                            except Exception:
+                                pass
+
+            elif action == "restart_game":
+                room_manager.restart_game(room)
 
             elif action == "increment_turn":
-                room.turn_count += 1
+                if room.config.turn_counter_enabled:
+                    room.turn_count += 1
 
             elif action == "end_game":
                 winner_id = message.get("winnerId")
-                # TODO: Save game to database
-                pass
+                game_data = room_manager.finalize_game(room, winner_id)
+
+                # Persist game and players to database
+                async with async_session() as session:
+                    game = Game(
+                        id=uuid.uuid4(),
+                        room_code=game_data["room_code"],
+                        format=game_data["format"],
+                        starting_life=game_data["starting_life"],
+                        poison_enabled=game_data["poison_enabled"],
+                        turn_counter_enabled=game_data["turn_counter_enabled"],
+                        turn_count=game_data["turn_count"],
+                        winner_id=None,
+                        creator_id=None,
+                        is_local=game_data["is_local"],
+                        started_at=datetime.now(timezone.utc),
+                        ended_at=datetime.now(timezone.utc),
+                        is_active=False,
+                    )
+                    session.add(game)
+
+                    for p_data in game_data["players"]:
+                        game_player = GamePlayer(
+                            id=uuid.uuid4(),
+                            game_id=game.id,
+                            user_id=None,
+                            deck_id=uuid.UUID(p_data["deck_id"]) if p_data.get("deck_id") else None,
+                            player_name=p_data["username"],
+                            commander_name=p_data["commander_name"],
+                            partner_name=p_data["partner_name"],
+                            final_life=p_data["final_life"],
+                            final_poison=p_data["final_poison"],
+                            commander_damage_received=p_data["commander_damage_received"],
+                            is_winner=p_data["is_winner"],
+                            elimination_cause=p_data["elimination_cause"],
+                            elimination_order=p_data["elimination_order"],
+                        )
+                        session.add(game_player)
+
+                    await session.commit()
+
+                # Broadcast game_ended message to all players
+                winner_name = (
+                    room.players[winner_id].username
+                    if winner_id and winner_id in room.players
+                    else None
+                )
+                game_ended_msg = json.dumps({
+                    "type": "game_ended",
+                    "winnerId": winner_id,
+                    "winnerName": winner_name,
+                })
+                for player in room.players.values():
+                    if player.websocket and player.is_connected:
+                        try:
+                            await player.websocket.send_text(game_ended_msg)
+                        except Exception:
+                            pass
+
+                # Remove room from manager for cleanup
+                if room.code in room_manager.rooms:
+                    del room_manager.rooms[room.code]
+                continue
 
             # Broadcast state after every action
             await room_manager.broadcast(room)

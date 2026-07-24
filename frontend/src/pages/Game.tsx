@@ -1,254 +1,470 @@
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useState, useCallback, useMemo } from 'react'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import type { Player, GameFormat } from '@/types/game'
+import type { StateUpdate, StarterSelected, GameEnded } from '@/hooks/useWebSocket'
+import { useWebSocket } from '@/hooks/useWebSocket'
 import CommanderSearch from '@/components/CommanderSearch'
+import DeckSelector from '@/components/DeckSelector'
+import PlayerCard from '@/components/PlayerCard'
+import LifeCounter from '@/components/LifeCounter'
+import PoisonCounter from '@/components/PoisonCounter'
+import CmdDamagePanel from '@/components/CmdDamagePanel'
+import StarterPicker from '@/components/StarterPicker'
 import type { ScryfallCard } from '@/services/scryfall'
 import { getCardImageUrl } from '@/services/scryfall'
 
-const FORMAT_LIFE: Record<GameFormat, number> = {
-  commander: 40,
-  standard: 20,
-  modern: 20,
-  pauper: 20,
-  custom: 20,
+// ═══════════════════════════════════════════════════════
+// Join form data passed to GameView after joining
+// ═══════════════════════════════════════════════════════
+interface JoinData {
+  playerId: string
+  playerName: string
+  commanderName: string
+  commanderImage: string
+  partnerName: string
+  partnerImage: string
+  deckId: string
 }
-
-const PLAYER_COLORS = [
-  'bg-purple-900', 'bg-blue-900', 'bg-green-900', 'bg-red-900',
-  'bg-yellow-900', 'bg-pink-900', 'bg-indigo-900', 'bg-teal-900',
-]
 
 export default function Game() {
   const { roomCode } = useParams<{ roomCode: string }>()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+
+  // Room config from URL params
   const format = (searchParams.get('format') as GameFormat) || 'commander'
   const isCreator = searchParams.get('create') === 'true'
+  const startingLife = Number(searchParams.get('startingLife')) || (format === 'commander' ? 40 : 20)
+  const poisonEnabled = searchParams.get('poisonEnabled') === 'true'
+  const turnCounterEnabled = searchParams.get('turnCounterEnabled') === 'true'
 
-  const startingLife = FORMAT_LIFE[format]
-  const [players, setPlayers] = useState<Player[]>([])
+  // Join form state
+  const [joinData, setJoinData] = useState<JoinData | null>(null)
   const [myId] = useState(() => crypto.randomUUID())
   const [myName, setMyName] = useState('')
   const [commanderName, setCommanderName] = useState('')
   const [commanderImage, setCommanderImage] = useState('')
-  const [joined, setJoined] = useState(false)
-  const [showCommanderDamage, setShowCommanderDamage] = useState<string | null>(null)
-  const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'error'>('connecting')
-  const ws = useRef<WebSocket | null>(null)
+  const [partnerName, setPartnerName] = useState('')
+  const [partnerImage, setPartnerImage] = useState('')
+  const [deckId, setDeckId] = useState('')
 
-  useEffect(() => {
-    if (!joined) return
-
-    // Connect directly to backend for WebSocket (proxy issues with Vite)
-    const wsHost = window.location.hostname
-    const wsPort = '8000'
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const wsUrl = `${wsProtocol}://${wsHost}:${wsPort}/game-ws/${roomCode}?player_id=${myId}&player_name=${encodeURIComponent(myName)}&commander_name=${encodeURIComponent(commanderName)}&commander_image=${encodeURIComponent(commanderImage)}&format=${format}`
-    
-    ws.current = new WebSocket(wsUrl)
-
-    ws.current.onopen = () => {
-      console.log('WebSocket connected to', wsUrl)
-      setWsStatus('connected')
+  // Commander search handler for join form
+  const handleCommanderSelect = (
+    commander: { name: string; image: string },
+    partner?: { name: string; image: string }
+  ) => {
+    setCommanderName(commander.name)
+    setCommanderImage(commander.image)
+    if (partner) {
+      setPartnerName(partner.name)
+      setPartnerImage(partner.image)
+    } else {
+      setPartnerName('')
+      setPartnerImage('')
     }
-
-    ws.current.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'state_update') {
-        setPlayers(data.players)
-      }
-    }
-
-    ws.current.onerror = (error) => {
-      console.error('WebSocket error:', error)
-      setWsStatus('error')
-    }
-
-    ws.current.onclose = (event) => {
-      console.log('WebSocket disconnected', event.code, event.reason)
-    }
-
-    return () => {
-      ws.current?.close()
-    }
-  }, [joined, roomCode, myId, myName, commanderName, commanderImage, format])
-
-  const sendAction = (action: string, payload: Record<string, unknown>) => {
-    ws.current?.send(JSON.stringify({ action, ...payload }))
   }
 
-  const adjustLife = (playerId: string, amount: number) => {
-    sendAction('adjust_life', { targetId: playerId, amount })
+  // Deck selector handler
+  const handleDeckSelect = (deck: {
+    id: string
+    commanderName?: string
+    commanderImage?: string
+    partnerName?: string
+    partnerImage?: string
+  }) => {
+    setDeckId(deck.id)
+    if (deck.commanderName) {
+      setCommanderName(deck.commanderName)
+      setCommanderImage(deck.commanderImage || '')
+      setPartnerName(deck.partnerName || '')
+      setPartnerImage(deck.partnerImage || '')
+    }
   }
 
-  const adjustCommanderDamage = (fromId: string, toId: string, amount: number) => {
-    sendAction('commander_damage', { fromId, toId, amount })
+  const handleJoin = () => {
+    setJoinData({
+      playerId: myId,
+      playerName: myName,
+      commanderName,
+      commanderImage,
+      partnerName,
+      partnerImage,
+      deckId,
+    })
   }
 
-  if (!joined) {
+  // ═══════════════════════════════════════════════════════
+  // POST-JOIN: Render GameView with WebSocket connection
+  // ═══════════════════════════════════════════════════════
+  if (joinData) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <div className="bg-[var(--color-bg-card)] rounded-xl p-6 w-full max-w-md space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Unirse a sala: {roomCode}</h2>
-            <button onClick={() => navigate('/')} className="text-sm text-gray-400 hover:text-white">
-              ← Volver
-            </button>
-          </div>
-          <p className="text-sm text-gray-400">Formato: {format} ({startingLife} vida)</p>
-          
-          <input
-            type="text"
-            placeholder="Tu nombre"
-            value={myName}
-            onChange={(e) => setMyName(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500"
-          />
-
-          {format === 'commander' && (
-            <CommanderSearch
-              value={commanderName}
-              onChange={(name, card?: ScryfallCard) => {
-                setCommanderName(name)
-                if (card) {
-                  const artUrl = getCardImageUrl(card, 'art_crop')
-                  setCommanderImage(artUrl || '')
-                }
-              }}
-              placeholder="Buscar tu Commander..."
-            />
-          )}
-
-          <button
-            onClick={() => setJoined(true)}
-            disabled={!myName.trim()}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors"
-          >
-            {isCreator ? 'Crear y Unirse' : 'Unirse'}
-          </button>
-        </div>
-      </div>
+      <GameView
+        roomCode={roomCode || ''}
+        format={format}
+        startingLife={startingLife}
+        poisonEnabled={poisonEnabled}
+        turnCounterEnabled={turnCounterEnabled}
+        joinData={joinData}
+      />
     )
   }
 
+  // ═══════════════════════════════════════════════════════
+  // JOIN FORM (pre-game)
+  // ═══════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen p-2">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-950 text-white">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            Unirse a sala: <span className="text-purple-400 font-mono">{roomCode}</span>
+          </h2>
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            ← Volver
+          </button>
+        </div>
+
+        <p className="text-sm text-gray-400">
+          Formato: {format} • {startingLife} vida
+          {poisonEnabled && ' • Veneno'}
+          {turnCounterEnabled && ' • Turnos'}
+        </p>
+
+        {/* Player Name */}
+        <input
+          type="text"
+          placeholder="Tu nombre"
+          value={myName}
+          onChange={(e) => setMyName(e.target.value.slice(0, 30))}
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+
+        {/* Commander Search (for commander format) */}
+        {format === 'commander' && (
+          <CommanderSearch
+            value={commanderName}
+            onChange={(name, card?: ScryfallCard) => {
+              setCommanderName(name)
+              if (card) {
+                const artUrl = getCardImageUrl(card, 'art_crop')
+                setCommanderImage(artUrl || '')
+              }
+            }}
+            onSelect={handleCommanderSelect}
+            placeholder="Buscar tu Commander..."
+          />
+        )}
+
+        {/* Deck Selector */}
+        <DeckSelector format={format} onSelect={handleDeckSelect} />
+
+        {/* Join Button */}
+        <button
+          onClick={handleJoin}
+          disabled={!myName.trim()}
+          className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 rounded-lg transition-colors"
+        >
+          {isCreator ? 'Crear y Unirse' : 'Unirse'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════
+// Game View Component (active game with WebSocket)
+// ═══════════════════════════════════════════════════════
+
+interface GameViewProps {
+  roomCode: string
+  format: GameFormat
+  startingLife: number
+  poisonEnabled: boolean
+  turnCounterEnabled: boolean
+  joinData: JoinData
+}
+
+function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEnabled, joinData }: GameViewProps) {
+  const navigate = useNavigate()
+
+  // Game state
+  const [players, setPlayers] = useState<Player[]>([])
+  const [turnCount, setTurnCount] = useState(0)
+  const [showCmdDamage, setShowCmdDamage] = useState<string | null>(null)
+  const [starterSelectedId, setStarterSelectedId] = useState<string | null>(null)
+  const [gameEnded, setGameEnded] = useState<{ winnerId: string | null; winnerName: string | null } | null>(null)
+
+  // WebSocket callbacks
+  const handleStateUpdate = useCallback((state: StateUpdate) => {
+    setPlayers(state.players)
+    setTurnCount(state.turnCount)
+  }, [])
+
+  const handleStarterSelected = useCallback((data: StarterSelected) => {
+    setStarterSelectedId(data.playerId)
+  }, [])
+
+  const handleGameEnded = useCallback((data: GameEnded) => {
+    setGameEnded({ winnerId: data.winnerId, winnerName: data.winnerName })
+  }, [])
+
+  const handleError = useCallback((message: string) => {
+    console.error('WebSocket error:', message)
+  }, [])
+
+  // Connect WebSocket
+  const { status, sendAction, disconnect } = useWebSocket({
+    roomCode,
+    playerId: joinData.playerId,
+    playerName: joinData.playerName,
+    commanderName: joinData.commanderName,
+    commanderImage: joinData.commanderImage,
+    partnerName: joinData.partnerName,
+    partnerImage: joinData.partnerImage,
+    format,
+    poisonEnabled,
+    turnCounterEnabled,
+    startingLife,
+    deckId: joinData.deckId,
+    onStateUpdate: handleStateUpdate,
+    onStarterSelected: handleStarterSelected,
+    onGameEnded: handleGameEnded,
+    onError: handleError,
+  })
+
+  // Derived state
+  const activePlayers = useMemo(() => players.filter((p) => !p.eliminationCause), [players])
+  const lastPlayerStanding = useMemo(() => {
+    if (players.length < 2) return null
+    if (activePlayers.length === 1) return activePlayers[0]
+    return null
+  }, [players, activePlayers])
+
+  // Actions
+  const adjustLife = useCallback((playerId: string, amount: number) => {
+    sendAction({ action: 'adjust_life', targetId: playerId, amount })
+  }, [sendAction])
+
+  const adjustPoison = useCallback((playerId: string, amount: number) => {
+    sendAction({ action: 'adjust_poison', targetId: playerId, amount })
+  }, [sendAction])
+
+  const adjustCommanderDamage = useCallback((commanderSourceId: string, toId: string, amount: number) => {
+    sendAction({ action: 'commander_damage', commanderSourceId, toId, amount })
+  }, [sendAction])
+
+  const incrementTurn = useCallback(() => {
+    sendAction({ action: 'increment_turn' })
+  }, [sendAction])
+
+  const selectStarter = useCallback(() => {
+    sendAction({ action: 'select_starter' })
+  }, [sendAction])
+
+  const endGame = useCallback(() => {
+    const winnerId = lastPlayerStanding?.id || null
+    sendAction({ action: 'end_game', winnerId })
+  }, [sendAction, lastPlayerStanding])
+
+  const restartGame = useCallback(() => {
+    setGameEnded(null)
+    setStarterSelectedId(null)
+    sendAction({ action: 'restart_game' })
+  }, [sendAction])
+
+  const handleLeave = useCallback(() => {
+    disconnect()
+    navigate('/')
+  }, [disconnect, navigate])
+
+  // Build commander damage sources for a player
+  const getCmdDamageSources = (player: Player) => {
+    const sources: { id: string; name: string; damage: number; isPartner?: boolean }[] = []
+    for (const other of players) {
+      if (other.id === player.id) continue
+      // Main commander
+      const mainDamage = player.commanderDamage[other.id] || 0
+      sources.push({
+        id: other.id,
+        name: other.commanderName || other.username,
+        damage: mainDamage,
+      })
+      // Partner (if exists)
+      if (other.partnerName) {
+        const partnerId = `${other.id}_partner`
+        const partnerDamage = player.commanderDamage[partnerId] || 0
+        sources.push({
+          id: partnerId,
+          name: other.partnerName,
+          damage: partnerDamage,
+          isPartner: true,
+        })
+      }
+    }
+    return sources
+  }
+
+  // Connection status indicator color
+  const statusColor = status === 'connected'
+    ? 'bg-green-400'
+    : status === 'error' || status === 'disconnected'
+      ? 'bg-red-400'
+      : 'bg-yellow-400 animate-pulse'
+
+  return (
+    <div className="min-h-screen p-2 bg-gray-950 text-white">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 px-2">
-        <div className="text-sm text-gray-400">
-          Sala: <span className="text-purple-400 font-mono font-bold">{roomCode}</span>
-          <span className={`ml-2 inline-block w-2 h-2 rounded-full ${
-            wsStatus === 'connected' ? 'bg-green-400' : wsStatus === 'error' ? 'bg-red-400' : 'bg-yellow-400 animate-pulse'
-          }`}></span>
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <span>
+            Sala: <span className="text-purple-400 font-mono font-bold">{roomCode}</span>
+          </span>
+          <span className={`inline-block w-2 h-2 rounded-full ${statusColor}`} title={status}></span>
         </div>
-        <div className="text-sm text-gray-400">
-          {players.length} jugadores • {format}
+        <div className="flex items-center gap-3 text-sm text-gray-400">
+          {turnCounterEnabled && (
+            <button
+              onClick={incrementTurn}
+              className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded-lg transition-colors"
+              title="Incrementar turno"
+            >
+              <span>🔄</span>
+              <span className="font-mono">{turnCount}</span>
+            </button>
+          )}
+          <span>{players.length} jugadores • {format}</span>
         </div>
       </div>
 
-      {/* Players Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {players.map((player, idx) => (
-          <div
-            key={player.id}
-            className={`rounded-xl p-4 relative overflow-hidden min-h-[160px] ${
-              player.id === myId ? 'ring-2 ring-purple-400' : ''
-            } ${!player.commanderImage ? PLAYER_COLORS[idx % PLAYER_COLORS.length] : ''}`}
+      {/* Last player standing notification */}
+      {lastPlayerStanding && !gameEnded && (
+        <div className="mx-2 mb-3 bg-yellow-900/50 border border-yellow-600 rounded-lg p-3 flex items-center justify-between">
+          <span className="text-yellow-200 text-sm font-medium">
+            🏆 ¡{lastPlayerStanding.username} es el último jugador en pie!
+          </span>
+          <button
+            onClick={endGame}
+            className="bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold text-sm px-3 py-1 rounded-lg transition-colors"
           >
-            {/* Commander art background */}
-            {player.commanderImage && (
-              <div className="absolute inset-0">
-                <img
-                  src={player.commanderImage}
-                  alt=""
-                  className="w-full h-full object-cover"
+            Finalizar Partida
+          </button>
+        </div>
+      )}
+
+      {/* Game ended overlay */}
+      {gameEnded && (
+        <div className="mx-2 mb-3 bg-purple-900/50 border border-purple-600 rounded-lg p-4 text-center space-y-3">
+          <p className="text-xl font-bold text-purple-200">
+            🎉 ¡Partida Finalizada!
+          </p>
+          {gameEnded.winnerName && (
+            <p className="text-lg text-yellow-300">
+              Ganador: {gameEnded.winnerName}
+            </p>
+          )}
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={restartGame}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              🔄 Reiniciar Partida
+            </button>
+            <button
+              onClick={handleLeave}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              🚪 Salir
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Starter Picker */}
+      {!gameEnded && (
+        <StarterPicker
+          players={players.map((p) => ({ id: p.id, username: p.username }))}
+          selectedId={starterSelectedId}
+          onSelect={selectStarter}
+        />
+      )}
+
+      {/* Players Grid - 1 col < 640px, 2 cols >= 640px */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+        {players.map((player, idx) => (
+          <PlayerCard
+            key={player.id}
+            player={player}
+            isLocal={player.id === joinData.playerId}
+            colorIndex={idx}
+          >
+            {/* Life Counter */}
+            <div className="flex justify-center">
+              <LifeCounter
+                life={player.life}
+                onAdjust={(amount) => adjustLife(player.id, amount)}
+              />
+            </div>
+
+            {/* Poison Counter */}
+            {poisonEnabled && (
+              <div className="mt-2">
+                <PoisonCounter
+                  poison={player.poisonCounters}
+                  onAdjust={(amount) => adjustPoison(player.id, amount)}
                 />
-                <div className="absolute inset-0 bg-black/60" />
               </div>
             )}
 
-            {/* Content (on top of background) */}
-            <div className="relative z-10">
-              {/* Player Info */}
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <span className="font-semibold drop-shadow-lg">{player.username}</span>
-                  {player.commanderName && (
-                    <span className="text-xs text-gray-200 ml-2 drop-shadow-lg">
-                      ({player.commanderName})
-                    </span>
-                  )}
-                </div>
-                {!player.isConnected && (
-                  <span className="text-xs text-red-400 bg-black/50 px-1 rounded">desconectado</span>
-                )}
-              </div>
-
-              {/* Life Counter */}
-              <div className="flex items-center justify-center gap-4">
+            {/* Commander Damage Toggle */}
+            {format === 'commander' && (
+              <>
                 <button
-                  onClick={() => adjustLife(player.id, -1)}
-                  className="w-12 h-12 bg-black/40 hover:bg-red-800/60 rounded-full text-2xl font-bold transition-colors backdrop-blur-sm"
-                >
-                  -
-                </button>
-                <span className="text-5xl font-bold min-w-[3ch] text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                  {player.life}
-                </span>
-                <button
-                  onClick={() => adjustLife(player.id, 1)}
-                  className="w-12 h-12 bg-black/40 hover:bg-green-800/60 rounded-full text-2xl font-bold transition-colors backdrop-blur-sm"
-                >
-                  +
-                </button>
-              </div>
-
-              {/* Commander Damage Toggle */}
-              {format === 'commander' && (
-                <button
-                  onClick={() => setShowCommanderDamage(
-                    showCommanderDamage === player.id ? null : player.id
-                  )}
+                  onClick={() => setShowCmdDamage(showCmdDamage === player.id ? null : player.id)}
                   className="mt-2 text-xs text-gray-200 hover:text-white transition-colors w-full text-center drop-shadow-lg"
                 >
-                  ⚔️ Commander Damage
+                  ⚔️ Commander Damage {showCmdDamage === player.id ? '▲' : '▼'}
                 </button>
-              )}
 
-              {/* Commander Damage Panel */}
-              {showCommanderDamage === player.id && format === 'commander' && (
-                <div className="mt-2 space-y-1 bg-black/50 backdrop-blur-sm rounded-lg p-2">
-                  {players
-                    .filter((p) => p.id !== player.id)
-                    .map((source) => (
-                      <div key={source.id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-200 truncate flex-1">
-                          {source.commanderName || source.username}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => adjustCommanderDamage(source.id, player.id, -1)}
-                            className="w-6 h-6 bg-black/40 rounded text-xs hover:bg-red-800/60"
-                          >
-                            -
-                          </button>
-                          <span className="w-6 text-center font-mono">
-                            {player.commanderDamage[source.id] || 0}
-                          </span>
-                          <button
-                            onClick={() => adjustCommanderDamage(source.id, player.id, 1)}
-                            className="w-6 h-6 bg-black/40 rounded text-xs hover:bg-green-800/60"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          </div>
+                {showCmdDamage === player.id && (
+                  <div className="mt-2">
+                    <CmdDamagePanel
+                      sources={getCmdDamageSources(player)}
+                      onAdjust={(sourceId, amount) => adjustCommanderDamage(sourceId, player.id, amount)}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </PlayerCard>
         ))}
       </div>
+
+      {/* Footer actions */}
+      {!gameEnded && (
+        <div className="flex gap-3 justify-center mt-4 px-2">
+          <button
+            onClick={endGame}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
+          >
+            🏁 Finalizar Partida
+          </button>
+          <button
+            onClick={restartGame}
+            className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
+          >
+            🔄 Reiniciar
+          </button>
+          <button
+            onClick={handleLeave}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
+          >
+            🚪 Salir
+          </button>
+        </div>
+      )}
     </div>
   )
 }

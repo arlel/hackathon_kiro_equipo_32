@@ -3,6 +3,7 @@ const SCRYFALL_API = 'https://api.scryfall.com'
 export interface ScryfallCard {
   id: string
   name: string
+  oracle_text?: string
   image_uris?: {
     small: string
     normal: string
@@ -10,6 +11,7 @@ export interface ScryfallCard {
   }
   card_faces?: {
     name: string
+    oracle_text?: string
     image_uris?: {
       small: string
       normal: string
@@ -64,6 +66,17 @@ export function getCardImageUrl(card: ScryfallCard, size: 'small' | 'normal' | '
     return card.card_faces[0].image_uris[size]
   }
   return null
+}
+
+/**
+ * Check if a card has the "Partner" keyword ability.
+ * Checks both top-level oracle_text and card_faces for double-faced cards.
+ */
+export function hasPartnerAbility(card: ScryfallCard): boolean {
+  const oracleText = card.oracle_text
+    || card.card_faces?.[0]?.oracle_text
+    || ''
+  return /\bpartner\b/i.test(oracleText)
 }
 
 /**
