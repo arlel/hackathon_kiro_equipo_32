@@ -9,7 +9,7 @@ on:
 jobs:
   ci:
     name: Run CI checks
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ci-backend.yml
 
   deploy:
     name: Deploy to Render
