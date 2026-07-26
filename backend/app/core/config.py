@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440  # 24 hours
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,https://hackathon-kiro-equipo-32.vercel.app"
 
     @property
     def cors_origins_list(self) -> list[str]:
