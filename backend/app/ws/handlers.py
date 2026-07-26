@@ -116,44 +116,50 @@ async def websocket_endpoint(
                 winner_id = message.get("winnerId")
                 game_data = room_manager.finalize_game(room, winner_id)
 
-                # Persist game and players to database
-                async with async_session() as session:
-                    game = Game(
-                        id=uuid.uuid4(),
-                        room_code=game_data["room_code"],
-                        format=game_data["format"],
-                        starting_life=game_data["starting_life"],
-                        poison_enabled=game_data["poison_enabled"],
-                        turn_counter_enabled=game_data["turn_counter_enabled"],
-                        turn_count=game_data["turn_count"],
-                        winner_id=None,
-                        creator_id=None,
-                        is_local=game_data["is_local"],
-                        started_at=datetime.now(timezone.utc),
-                        ended_at=datetime.now(timezone.utc),
-                        is_active=False,
-                    )
-                    session.add(game)
-
-                    for p_data in game_data["players"]:
-                        game_player = GamePlayer(
+                # Persist game and players to database (best-effort)
+                try:
+                    async with async_session() as session:
+                        game = Game(
                             id=uuid.uuid4(),
-                            game_id=game.id,
-                            user_id=None,
-                            deck_id=uuid.UUID(p_data["deck_id"]) if p_data.get("deck_id") else None,
-                            player_name=p_data["username"],
-                            commander_name=p_data["commander_name"],
-                            partner_name=p_data["partner_name"],
-                            final_life=p_data["final_life"],
-                            final_poison=p_data["final_poison"],
-                            commander_damage_received=p_data["commander_damage_received"],
-                            is_winner=p_data["is_winner"],
-                            elimination_cause=p_data["elimination_cause"],
-                            elimination_order=p_data["elimination_order"],
+                            room_code=game_data["room_code"],
+                            format=game_data["format"],
+                            starting_life=game_data["starting_life"],
+                            poison_enabled=game_data["poison_enabled"],
+                            turn_counter_enabled=game_data["turn_counter_enabled"],
+                            turn_count=game_data["turn_count"],
+                            winner_id=None,
+                            creator_id=None,
+                            is_local=game_data["is_local"],
+                            started_at=datetime.now(timezone.utc),
+                            ended_at=datetime.now(timezone.utc),
+                            is_active=False,
                         )
-                        session.add(game_player)
+                        session.add(game)
 
-                    await session.commit()
+                        for p_data in game_data["players"]:
+                            game_player = GamePlayer(
+                                id=uuid.uuid4(),
+                                game_id=game.id,
+                                user_id=None,
+                                deck_id=uuid.UUID(p_data["deck_id"]) if p_data.get("deck_id") else None,
+                                player_name=p_data["username"],
+                                commander_name=p_data["commander_name"],
+                                partner_name=p_data["partner_name"],
+                                final_life=p_data["final_life"],
+                                final_poison=p_data["final_poison"],
+                                commander_damage_received=p_data["commander_damage_received"],
+                                is_winner=p_data["is_winner"],
+                                elimination_cause=p_data["elimination_cause"],
+                                elimination_order=p_data["elimination_order"],
+                            )
+                            session.add(game_player)
+
+                        await session.commit()
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "Failed to persist game to database: %s", e
+                    )
 
                 # Broadcast game_ended message to all players
                 winner_name = (

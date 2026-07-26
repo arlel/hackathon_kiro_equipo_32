@@ -60,6 +60,30 @@ export default function LocalGame() {
   const [starterId, setStarterId] = useState<string | null>(null)
   const [gameEnded, setGameEnded] = useState(false)
 
+  const handleAdjustLife = useCallback(
+    (playerId: string, amount: number) => {
+      adjustLife(playerId, amount)
+      checkElimination(playerId)
+    },
+    [adjustLife, checkElimination]
+  )
+
+  const handleAdjustPoison = useCallback(
+    (playerId: string, amount: number) => {
+      adjustPoison(playerId, amount)
+      checkElimination(playerId)
+    },
+    [adjustPoison, checkElimination]
+  )
+
+  const handleCmdDamage = useCallback(
+    (sourceId: string, targetId: string, amount: number) => {
+      applyCommanderDamage(sourceId, targetId, amount)
+      checkElimination(targetId)
+    },
+    [applyCommanderDamage, checkElimination]
+  )
+
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return (
@@ -350,29 +374,7 @@ export default function LocalGame() {
       setShowCmdDamage(null)
     }
 
-    const handleAdjustLife = useCallback(
-      (playerId: string, amount: number) => {
-        adjustLife(playerId, amount)
-        checkElimination(playerId)
-      },
-      [adjustLife, checkElimination]
-    )
 
-    const handleAdjustPoison = useCallback(
-      (playerId: string, amount: number) => {
-        adjustPoison(playerId, amount)
-        checkElimination(playerId)
-      },
-      [adjustPoison, checkElimination]
-    )
-
-    const handleCmdDamage = useCallback(
-      (sourceId: string, targetId: string, amount: number) => {
-        applyCommanderDamage(sourceId, targetId, amount)
-        checkElimination(targetId)
-      },
-      [applyCommanderDamage, checkElimination]
-    )
 
     const buildDamageSources = (player: Player): { id: string; name: string; damage: number; isPartner?: boolean }[] => {
       const sources: { id: string; name: string; damage: number; isPartner?: boolean }[] = []

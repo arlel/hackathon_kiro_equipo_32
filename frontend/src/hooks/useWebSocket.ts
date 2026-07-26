@@ -152,11 +152,24 @@ export function useWebSocket(options: UseWebSocketOptions) {
   }, [])
 
   useEffect(() => {
-    connect()
+    let cancelled = false
+
+    // Small delay avoids the "WebSocket closed before connection established"
+    // warning caused by React 19 StrictMode double-invoking effects.
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        connect()
+      }
+    }, 0)
+
     return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
       retriesRef.current = MAX_RETRIES // Prevent reconnection on cleanup
-      wsRef.current?.close()
-      wsRef.current = null
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
     }
   }, [connect])
 
