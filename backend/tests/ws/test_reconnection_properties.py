@@ -7,7 +7,6 @@ Validates: Requirements 3.6
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 

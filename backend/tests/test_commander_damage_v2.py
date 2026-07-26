@@ -4,7 +4,6 @@ Validates Requirements: 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9
 """
 
 import pytest
-from unittest.mock import MagicMock
 
 from app.ws.room_manager import RoomManager, Room, RoomConfig, PlayerState
 

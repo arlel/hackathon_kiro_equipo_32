@@ -83,7 +83,7 @@ class TestCheckElimination:
         assert player.elimination_order == 1
 
     def test_detects_negative_life_elimination(self, manager: RoomManager, room: Room) -> None:
-        player = _add_player(room, "p1", life=-5)
+        _ = _add_player(room, "p1", life=-5)
         result = manager.check_elimination(room, "p1")
         assert result == "daño normal"
 

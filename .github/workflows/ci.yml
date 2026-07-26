@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [develop]
   pull_request:
     branches: [main, develop]
 
@@ -63,6 +63,11 @@ jobs:
 
       - name: Format check
         run: ruff format --check app/ tests/
+
+      - name: Run alembic migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/mtg_counter
 
       - name: Test
         run: pytest tests/ -v --tb=short

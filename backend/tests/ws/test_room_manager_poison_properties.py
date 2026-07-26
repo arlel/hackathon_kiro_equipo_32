@@ -2,8 +2,7 @@
 
 Uses hypothesis for property-based testing with minimum 100 iterations.
 """
-import pytest
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from app.ws.room_manager import RoomManager, Room, RoomConfig, PlayerState

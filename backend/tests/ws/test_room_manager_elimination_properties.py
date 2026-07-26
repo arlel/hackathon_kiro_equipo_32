@@ -4,7 +4,6 @@ Uses hypothesis for property-based testing with minimum 100 iterations.
 Validates: Requirements 10.1, 16.1, 16.7, 17.5, 17.9
 """
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
