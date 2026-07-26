@@ -2,103 +2,115 @@
 
 ## Introduction
 
-This specification defines the deployment infrastructure and CI/CD pipeline for the MTG Life Counter application. The system consists of two independently deployable units: a React SPA frontend and a FastAPI WebSocket-capable backend, backed by a PostgreSQL database. The deployment strategy prioritizes cost-efficiency (free/hobby tier compatibility), simplicity of operation for a small team, and zero-downtime deployments where possible. The architecture supports environment separation (staging/production) and automated deployments triggered by git pushes.
+This specification defines the deployment infrastructure for the MTG Life Counter application. The system consists of two independently deployable units: a React SPA frontend and a FastAPI WebSocket-capable backend, backed by a PostgreSQL database.
+
+**Production stack:** Vercel (frontend) + Render (backend) + Neon (PostgreSQL).
+**Local development:** Docker Compose (all services in one command).
+
+The deployment strategy prioritizes cost-efficiency (free tier compatibility), simplicity of operation for a small team, and reliable WebSocket support for real-time gameplay.
 
 ## Glossary
 
-- **CI/CD_Pipeline**: The automated workflow that builds, tests, and deploys the application on every push to designated branches
-- **Frontend_Deployment**: The process of building the React SPA and deploying static assets to a CDN-backed hosting provider
-- **Backend_Deployment**: The process of containerizing and deploying the FastAPI application to a platform that supports persistent WebSocket connections
-- **Database_Migration**: The process of applying schema changes to the PostgreSQL database using Alembic in a safe, versioned manner
-- **Environment**: A complete isolated instance of the system (staging or production) with its own database, secrets, and URL
-- **Health_Check**: An endpoint that verifies the backend is running and can connect to its dependencies
-- **Secret_Management**: The system for securely storing and injecting environment variables (DB credentials, JWT secret, API keys) into deployed services
-- **Rollback**: The process of reverting a deployment to the previous working version
-- **Container_Image**: A Docker image containing the backend application and all its dependencies
-- **Preview_Deployment**: A temporary deployment of a pull request for testing before merge
+- **Frontend_Deployment**: The React SPA built and deployed as static assets to Vercel's CDN
+- **Backend_Deployment**: The FastAPI application deployed to Render as a Docker-based web service supporting persistent WebSocket connections
+- **Database**: Neon serverless PostgreSQL for production; local PostgreSQL container for development
+- **Docker_Compose_Stack**: The local development environment that runs frontend, backend, and PostgreSQL with a single `docker compose up` command
+- **Health_Check**: An endpoint (`GET /api/health`) that verifies the backend is running and can connect to its dependencies
+- **Secret_Management**: Environment variables configured in each platform's dashboard (Vercel, Render) — never stored in the repository
+- **Database_Migration**: Alembic migrations applied automatically on backend startup
 
 ## Requirements
 
-### Requirement 1: Frontend Deployment
+### Requirement 1: Local Development with Docker Compose
 
-**User Story:** As a developer, I want the frontend to be automatically deployed when changes are pushed to main, so that users always have access to the latest version.
-
-#### Acceptance Criteria
-
-1. WHEN code is pushed to the `main` branch affecting files under `frontend/`, THE CI/CD_Pipeline SHALL build the React SPA using `npm run build` and deploy the output to Vercel
-2. WHEN a pull request is opened with frontend changes, THE CI/CD_Pipeline SHALL create a Preview_Deployment with a unique URL and post it as a comment on the PR
-3. THE Frontend_Deployment SHALL configure environment variables for the backend API URL (`VITE_API_URL`) and WebSocket URL (`VITE_WS_URL`) specific to each Environment
-4. THE Frontend_Deployment SHALL serve all routes through a single `index.html` (SPA fallback) so that client-side routing works correctly
-5. WHEN a frontend deployment fails, THE CI/CD_Pipeline SHALL notify the team via the configured channel and retain the previous deployment as active
-
-### Requirement 2: Backend Deployment
-
-**User Story:** As a developer, I want the backend to be automatically deployed when changes are pushed to main, so that the API and WebSocket services are always up to date.
+**User Story:** As a developer, I want to run the entire stack locally with a single command, so I can develop and test without installing dependencies on my machine.
 
 #### Acceptance Criteria
 
-1. WHEN code is pushed to the `main` branch affecting files under `backend/`, THE CI/CD_Pipeline SHALL build a Container_Image from the Dockerfile and deploy it to the hosting platform (Railway or Fly.io)
-2. THE Backend_Deployment SHALL support persistent WebSocket connections without timeout for at least 60 minutes of inactivity
-3. THE Backend_Deployment SHALL expose the Health_Check endpoint at `GET /api/health` and the hosting platform SHALL use it to verify successful deployment before routing traffic
-4. WHEN a backend deployment fails the Health_Check within 120 seconds of starting, THE hosting platform SHALL automatically Rollback to the previous working version
-5. THE Backend_Deployment SHALL configure all required secrets (DATABASE_URL, JWT_SECRET, CORS_ORIGINS) via Secret_Management without storing them in the repository
+1. THE repository SHALL include a `docker-compose.yml` at the project root that defines three services: `frontend`, `backend`, and `db`
+2. WHEN a developer runs `docker compose up`, ALL three services SHALL start and be functional within 60 seconds on a machine with the images already pulled
+3. THE `db` service SHALL use the official `postgres:16-alpine` image and SHALL persist data using a named Docker volume (`pgdata`) so data survives container restarts
+4. THE `backend` service SHALL depend on `db` and SHALL NOT start the application server until the database is accepting connections (using a health check on the db service)
+5. THE `docker-compose.yml` SHALL validate required environment variables (`DATABASE_URL`, `SECRET_KEY`) at startup: if any are missing, the backend container SHALL exit with a clear error message indicating which variables are missing
+6. THE `backend` service SHALL mount the `backend/` directory as a volume for hot-reload during development (uvicorn `--reload`)
+7. THE `frontend` service SHALL mount the `frontend/` directory as a volume and run `npm run dev` with hot module replacement available on `http://localhost:5173`
+8. THE `frontend` service SHALL proxy `/api` and `/game-ws` requests to the backend service (via Vite config, already configured)
+9. A `.env.example` file at the project root SHALL document all required environment variables with placeholder values and comments
+10. THE `docker-compose.yml` SHALL expose: frontend on port 5173, backend on port 8000, PostgreSQL on port 5432 (host-mapped)
 
-### Requirement 3: Database Management
+### Requirement 2: Frontend Deployment (Vercel)
 
-**User Story:** As a developer, I want database migrations to run automatically during deployment, so that the schema is always in sync with the application code.
-
-#### Acceptance Criteria
-
-1. WHEN a new backend deployment starts, THE Container_Image SHALL run `alembic upgrade head` before starting the application server
-2. THE Database_Migration process SHALL be idempotent: running the same migration multiple times SHALL NOT produce errors or duplicate changes
-3. WHEN a migration fails, THE deployment SHALL be aborted and THE CI/CD_Pipeline SHALL notify the team with the error details
-4. THE system SHALL use a managed PostgreSQL instance (e.g., Railway Postgres, Neon, or Supabase) with automated daily backups
-5. EACH Environment (staging, production) SHALL have its own isolated database instance
-
-### Requirement 4: Environment Configuration
-
-**User Story:** As a developer, I want separate staging and production environments, so that I can test changes before they affect real users.
+**User Story:** As a developer, I want the frontend deployed to Vercel, so users get fast CDN-served static assets with zero infrastructure management.
 
 #### Acceptance Criteria
 
-1. THE system SHALL maintain two Environments: `staging` (deployed from `develop` branch) and `production` (deployed from `main` branch)
-2. EACH Environment SHALL have its own set of secrets, database, and public URL
-3. THE staging Environment SHALL be functionally identical to production but MAY use smaller resource allocations
-4. THE CI/CD_Pipeline SHALL prevent direct deployment to production without passing through staging first (enforced by branch protection rules, not the pipeline itself)
-5. EACH Environment SHALL have a clearly distinguishable URL pattern: `mtg-counter.vercel.app` for production frontend, `mtg-counter-staging.vercel.app` for staging frontend
+1. THE repository SHALL include a `frontend/vercel.json` configuration file that sets the build command to `npm run build`, output directory to `dist`, and configures SPA rewrites (all routes → `index.html`)
+2. THE Vercel project SHALL configure the following environment variables: `VITE_API_URL` (Render backend URL) and `VITE_WS_URL` (Render WebSocket URL, using `wss://` protocol)
+3. THE Frontend_Deployment SHALL serve all routes through a single `index.html` (SPA fallback) so that client-side routing works correctly
+4. THE Vercel project root directory SHALL be set to `frontend/` since it's a monorepo
+5. WHEN code is pushed to the `main` branch, Vercel SHALL automatically build and deploy the frontend
 
-### Requirement 5: Containerization
+### Requirement 3: Backend Deployment (Render)
 
-**User Story:** As a developer, I want the backend packaged as a Docker container, so that it runs consistently across local development and production.
+**User Story:** As a developer, I want the backend deployed to Render with full WebSocket support, so real-time gameplay works in production.
 
 #### Acceptance Criteria
 
-1. THE repository SHALL include a `backend/Dockerfile` that produces a Container_Image capable of running the FastAPI application with Uvicorn
+1. THE repository SHALL include a `backend/Dockerfile` that produces a container image capable of running the FastAPI application with Uvicorn
 2. THE Dockerfile SHALL use a multi-stage build: a build stage for installing dependencies and a runtime stage based on `python:3.12-slim`
-3. THE Container_Image SHALL expose port 8000 and accept a `PORT` environment variable to override it
-4. THE Container_Image SHALL have a final size of no more than 200 MB
-5. THE Dockerfile SHALL include a `HEALTHCHECK` instruction that validates the `/api/health` endpoint
+3. THE Container image SHALL accept a `PORT` environment variable (Render provides this) and bind Uvicorn to `0.0.0.0:$PORT`
+4. THE Container image final size SHALL be no more than 200 MB
+5. THE repository SHALL include a `render.yaml` (Blueprint) at the project root that defines the backend web service with: Docker build context `./backend`, environment variables (`DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`), and health check path `/api/health`
+6. THE Backend_Deployment SHALL support persistent WebSocket connections (Render supports this natively for web services)
+7. WHEN the container starts, it SHALL run `alembic upgrade head` before starting Uvicorn, so that database migrations are applied automatically on each deploy
+8. THE `CORS_ORIGINS` environment variable SHALL be set to the Vercel frontend URL to allow cross-origin requests
+9. THE Dockerfile SHALL include a `HEALTHCHECK` instruction that validates the `/api/health` endpoint
 
-### Requirement 6: CI Pipeline (Build & Test)
+### Requirement 4: Database (Neon)
 
-**User Story:** As a developer, I want automated checks on every push, so that broken code is caught before deployment.
-
-#### Acceptance Criteria
-
-1. WHEN code is pushed to any branch, THE CI/CD_Pipeline SHALL run linting (`oxlint` for frontend, `ruff` for backend) and report failures as check annotations
-2. WHEN code is pushed to any branch with backend changes, THE CI/CD_Pipeline SHALL run `pytest` and fail the pipeline if any test fails
-3. WHEN code is pushed to any branch with frontend changes, THE CI/CD_Pipeline SHALL run `npm run build` and fail the pipeline if the build produces errors
-4. THE CI/CD_Pipeline SHALL complete all checks within 5 minutes for a typical push
-5. THE CI/CD_Pipeline SHALL cache dependencies (node_modules, pip packages) between runs to reduce build time
-
-### Requirement 7: Monitoring and Observability
-
-**User Story:** As a developer, I want to know when the application is down or degraded, so that I can respond quickly to issues.
+**User Story:** As a developer, I want a managed PostgreSQL database with minimal operational overhead, so I can focus on building features.
 
 #### Acceptance Criteria
 
-1. THE Backend_Deployment SHALL log all requests with timestamp, method, path, status code, and response time to stdout in JSON format
-2. THE Health_Check endpoint SHALL verify database connectivity and return `{"status": "healthy", "db": "connected"}` or `{"status": "unhealthy", "db": "error", "detail": "..."}` with appropriate HTTP status codes (200 or 503)
-3. THE hosting platform SHALL provide basic metrics: request count, response time percentiles, and error rate, accessible via a dashboard
-4. WHEN the Health_Check fails 3 consecutive times within 5 minutes, THE system SHALL trigger an alert to the team (via email or webhook)
-5. THE system SHALL retain application logs for a minimum of 7 days
+1. THE production backend SHALL connect to Neon PostgreSQL using the `DATABASE_URL` environment variable configured in Render's dashboard
+2. THE `DATABASE_URL` SHALL use the `postgresql+asyncpg://` scheme for async SQLAlchemy compatibility
+3. THE Neon project SHALL have a single production branch (database) with autoscaling enabled on the free tier
+4. WHEN the backend starts, it SHALL verify database connectivity via the Health_Check endpoint, returning `{"status": "ok", "service": "mtg-life-counter"}` on success or a 503 with error details on failure
+5. THE developer SHALL create the Neon project manually via the Neon console and add the connection string to Render's environment variables
+
+### Requirement 5: Environment Variables & Secrets
+
+**User Story:** As a developer, I want a clear contract for required environment variables, so deployment configuration is explicit and validated.
+
+#### Acceptance Criteria
+
+1. THE backend SHALL require the following environment variables: `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS` (comma-separated list of allowed origins)
+2. THE frontend SHALL require the following build-time environment variables: `VITE_API_URL`, `VITE_WS_URL`
+3. THE backend SHALL validate all required environment variables at startup using `pydantic-settings` and SHALL fail fast with a clear error if any are missing
+4. THE repository SHALL include a root-level `.env.example` documenting all variables for Docker Compose local development
+5. Secrets SHALL NEVER be committed to the repository — `.env` SHALL be listed in `.gitignore`
+
+### Requirement 6: Containerization (Backend Dockerfile)
+
+**User Story:** As a developer, I want a production-grade Dockerfile for the backend, so it runs consistently on Render and locally via Docker Compose.
+
+#### Acceptance Criteria
+
+1. THE Dockerfile SHALL use `python:3.12-slim` as the base runtime image
+2. THE Dockerfile SHALL install dependencies from `requirements.txt` in a separate layer for Docker cache efficiency
+3. THE Dockerfile SHALL copy only the necessary application code (`app/`, `alembic/`, `alembic.ini`, `requirements.txt`)
+4. THE Dockerfile SHALL define a non-root user for running the application
+5. THE Dockerfile SHALL have an entrypoint script that: (a) runs `alembic upgrade head`, (b) starts `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+6. THE Dockerfile SHALL default `PORT` to `8000` if not provided
+
+### Requirement 7: Health Check & Observability
+
+**User Story:** As a developer, I want a reliable health check so that Render can verify deployments and route traffic correctly.
+
+#### Acceptance Criteria
+
+1. THE Health_Check endpoint (`GET /api/health`) SHALL verify database connectivity by executing a simple query (`SELECT 1`)
+2. WHEN the database is reachable, the endpoint SHALL return HTTP 200 with `{"status": "ok", "service": "mtg-life-counter"}`
+3. WHEN the database is NOT reachable, the endpoint SHALL return HTTP 503 with `{"status": "unhealthy", "detail": "<error message>"}`
+4. Render SHALL be configured to use `/api/health` as the health check path with a 120-second startup grace period (for cold starts on free tier)
+5. THE backend SHALL log to stdout so that Render's log viewer captures all application output

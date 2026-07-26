@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: mtg-life-counter-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerTarget: production
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://mtg-life-counter.vercel.app
+      - key: PORT
+        value: "10000"

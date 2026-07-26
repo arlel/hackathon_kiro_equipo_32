@@ -1,0 +1,28 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+
+jobs:
+  ci:
+    name: Run CI checks
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: ci
+    environment: production
+
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          if [ "$response" -ne 200 ] && [ "$response" -ne 201 ]; then
+            echo "ERROR: Render deploy hook returned HTTP $response"
+            exit 1
+          fi
+          echo "Deploy triggered successfully (HTTP $response)"
