@@ -514,25 +514,22 @@ Design decisions:
 
 **Flow:**
 1. Calls the CI workflow as a reusable workflow.
-2. On CI success, uses Vercel CLI to pull env, build, and deploy with `--prod` flag.
+2. On CI success, sends HTTP request to Vercel deploy hook URL.
+3. Vercel pulls latest code from `main`, builds frontend, and deploys to CDN.
 
 **Required GitHub Secrets:**
-- `VERCEL_TOKEN`: Personal access token from Vercel dashboard.
-- `VERCEL_ORG_ID`: From `.vercel/project.json` after `vercel link`.
-- `VERCEL_PROJECT_ID`: From `.vercel/project.json` after `vercel link`.
+- `VERCEL_DEPLOY_HOOK`: Deploy hook URL from Vercel dashboard (project → Settings → Git → Deploy Hooks, created for `main` branch).
 
 Design decisions:
-- **Vercel CLI over GitHub integration**: Gives explicit control — deployment only happens after CI passes. The native Vercel integration deploys immediately on push without waiting for checks.
-- **`--prebuilt` flag**: Build step produces output locally in CI, deploy step uploads it. Faster than building on Vercel's infra.
+- **Deploy hook over CLI**: Simpler — single secret, no need for org/project IDs or tokens. Same pattern as the backend deploy.
+- **Fail on non-2xx**: curl checks response code and fails the workflow if Vercel rejects the request.
 
 ### 14. GitHub Secrets Summary
 
 | Secret | Source | Used By |
 |--------|--------|---------|
 | `RENDER_DEPLOY_HOOK_URL` | Render → Service → Settings → Deploy Hook | `deploy-backend.yml` |
-| `VERCEL_TOKEN` | Vercel → Settings → Tokens → Create | `deploy-frontend.yml` |
-| `VERCEL_ORG_ID` | Run `vercel link` locally → `.vercel/project.json` | `deploy-frontend.yml` |
-| `VERCEL_PROJECT_ID` | Run `vercel link` locally → `.vercel/project.json` | `deploy-frontend.yml` |
+| `VERCEL_DEPLOY_HOOK` | Vercel → Project → Settings → Git → Deploy Hooks (branch: `main`) | `deploy-frontend.yml` |
 
 ## Security Considerations
 
