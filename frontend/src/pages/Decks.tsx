@@ -140,7 +140,7 @@ export default function Decks() {
           onClick={() => setShowForm(true)}
           className="w-full mb-6 py-3 border-2 border-dashed border-gray-700 rounded-xl text-gray-400 hover:border-purple-500 hover:text-purple-400 transition-colors"
         >
-          + Agregar Mazo
+          [+] Agregar Mazo
         </button>
       )}
 
