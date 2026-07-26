@@ -196,6 +196,8 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
   const [showCmdDamage, setShowCmdDamage] = useState<string | null>(null)
   const [starterSelectedId, setStarterSelectedId] = useState<string | null>(null)
   const [gameEnded, setGameEnded] = useState<{ winnerId: string | null; winnerName: string | null } | null>(null)
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const [localArtOverride, setLocalArtOverride] = useState<string | null>(null)
 
   // WebSocket callbacks
   const handleStateUpdate = useCallback((state: StateUpdate) => {
@@ -339,18 +341,55 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
         </div>
       </div>
 
-      {/* Last player standing notification */}
-      {lastPlayerStanding && !gameEnded && (
+      {/* Last player standing — confirmation dialog */}
+      {lastPlayerStanding && !gameEnded && !showEndConfirm && (
         <div className="mx-2 mb-3 bg-yellow-900/50 border border-yellow-600 rounded-lg p-3 flex items-center justify-between">
           <span className="text-yellow-200 text-sm font-medium">
             🏆 ¡{lastPlayerStanding.username} es el último jugador en pie!
           </span>
           <button
-            onClick={endGame}
+            onClick={() => setShowEndConfirm(true)}
             className="bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold text-sm px-3 py-1 rounded-lg transition-colors"
           >
             Finalizar Partida
           </button>
+        </div>
+      )}
+
+      {/* End game confirmation modal */}
+      {showEndConfirm && !gameEnded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4 text-center shadow-2xl">
+            <p className="text-3xl">🏆</p>
+            <h3 className="text-xl font-bold text-white">
+              ¿Finalizar la partida?
+            </h3>
+            {lastPlayerStanding && (
+              <p className="text-yellow-300 text-sm">
+                {lastPlayerStanding.username} es el último jugador en pie
+              </p>
+            )}
+            <p className="text-gray-400 text-sm">
+              Se guardará el resultado y la sala se cerrará para todos los jugadores.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowEndConfirm(false)
+                  endGame()
+                }}
+                className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold py-3 rounded-lg transition-colors"
+              >
+                Sí, finalizar
+              </button>
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
+              >
+                Continuar jugando
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -393,12 +432,20 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
 
       {/* Players Grid - 1 col < 640px, 2 cols >= 640px */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-        {players.map((player, idx) => (
+        {players.map((player, idx) => {
+          const isLocalPlayer = player.id === joinData.playerId
+          // Apply local art override for the local player
+          const displayPlayer = isLocalPlayer && localArtOverride
+            ? { ...player, commanderImage: localArtOverride }
+            : player
+
+          return (
           <PlayerCard
             key={player.id}
-            player={player}
-            isLocal={player.id === joinData.playerId}
+            player={displayPlayer}
+            isLocal={isLocalPlayer}
             colorIndex={idx}
+            onArtChange={isLocalPlayer ? (artUrl) => setLocalArtOverride(artUrl) : undefined}
           >
             {/* Life Counter */}
             <div className="flex justify-center">
@@ -439,14 +486,15 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
               </>
             )}
           </PlayerCard>
-        ))}
+          )
+        })}
       </div>
 
       {/* Footer actions */}
       {!gameEnded && (
         <div className="flex gap-3 justify-center mt-4 px-2">
           <button
-            onClick={endGame}
+            onClick={() => setShowEndConfirm(true)}
             className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
           >
             🏁 Finalizar Partida

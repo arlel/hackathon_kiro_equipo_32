@@ -59,6 +59,7 @@ export default function LocalGame() {
   const [showCmdDamage, setShowCmdDamage] = useState<string | null>(null)
   const [starterId, setStarterId] = useState<string | null>(null)
   const [gameEnded, setGameEnded] = useState(false)
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
 
   const handleAdjustLife = useCallback(
     (playerId: string, amount: number) => {
@@ -434,6 +435,61 @@ export default function LocalGame() {
           />
         )}
 
+        {/* Last player standing notification */}
+        {activePlayers.length === 1 && room.players.length >= 2 && !gameEnded && !showEndConfirm && (
+          <div className="mx-2 mb-3 bg-yellow-900/50 border border-yellow-600 rounded-lg p-3 flex items-center justify-between">
+            <span className="text-yellow-200 text-sm font-medium">
+              🏆 ¡{activePlayers[0].username} es el último jugador en pie!
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowEndConfirm(true)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold text-sm px-3 py-1 rounded-lg transition-colors"
+            >
+              Finalizar Partida
+            </button>
+          </div>
+        )}
+
+        {/* End game confirmation modal */}
+        {showEndConfirm && !gameEnded && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4 text-center shadow-2xl">
+              <p className="text-3xl">🏆</p>
+              <h3 className="text-xl font-bold text-white">
+                ¿Finalizar la partida?
+              </h3>
+              {activePlayers.length === 1 && (
+                <p className="text-yellow-300 text-sm">
+                  {activePlayers[0].username} es el último jugador en pie
+                </p>
+              )}
+              <p className="text-gray-400 text-sm">
+                Se guardará el resultado de la partida.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEndConfirm(false)
+                    handleEndGame()
+                  }}
+                  className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold py-3 rounded-lg transition-colors"
+                >
+                  Sí, finalizar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEndConfirm(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
+                >
+                  Continuar jugando
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Game ended banner */}
         {gameEnded && (
           <div className="mb-4 p-4 bg-yellow-900/30 border border-yellow-600 rounded-xl text-center">
@@ -508,7 +564,7 @@ export default function LocalGame() {
           {!gameEnded && (
             <button
               type="button"
-              onClick={handleEndGame}
+              onClick={() => setShowEndConfirm(true)}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-colors"
             >
               Finalizar Partida

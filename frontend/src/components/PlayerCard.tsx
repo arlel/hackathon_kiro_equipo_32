@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Player } from '@/types/game'
+import ArtPicker from '@/components/ArtPicker'
 
 const POSITION_COLORS = [
   'bg-purple-900',
@@ -21,9 +22,10 @@ interface PlayerCardProps {
   isLocal: boolean
   colorIndex: number
   children?: ReactNode
+  onArtChange?: (artUrl: string) => void
 }
 
-export default function PlayerCard({ player, isLocal, colorIndex, children }: PlayerCardProps) {
+export default function PlayerCard({ player, isLocal, colorIndex, children, onArtChange }: PlayerCardProps) {
   const hasCommanderImage = Boolean(player.commanderImage)
   const bgColorClass = POSITION_COLORS[colorIndex % POSITION_COLORS.length]
   const isEliminated = Boolean(player.eliminationCause)
@@ -33,7 +35,7 @@ export default function PlayerCard({ player, isLocal, colorIndex, children }: Pl
       className={`rounded-xl relative overflow-hidden min-h-[160px] ${
         isLocal ? 'ring-2 ring-purple-500' : ''
       } ${!hasCommanderImage ? bgColorClass : 'bg-gray-900'} ${
-        isEliminated ? 'opacity-60' : ''
+        isEliminated ? 'grayscale opacity-50' : ''
       }`}
     >
       {/* Commander art background with 60% dark overlay */}
@@ -42,13 +44,13 @@ export default function PlayerCard({ player, isLocal, colorIndex, children }: Pl
           <img
             src={player.commanderImage}
             alt=""
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${isEliminated ? 'grayscale' : ''}`}
             onError={(e) => {
               // Hide broken image, fallback to position color
               ;(e.target as HTMLImageElement).style.display = 'none'
             }}
           />
-          <div className="absolute inset-0 bg-black/60" />
+          <div className={`absolute inset-0 ${isEliminated ? 'bg-black/80' : 'bg-black/60'}`} />
         </div>
       )}
 
@@ -68,6 +70,14 @@ export default function PlayerCard({ player, isLocal, colorIndex, children }: Pl
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Art picker — only for the local player with a commander */}
+            {isLocal && player.commanderName && onArtChange && (
+              <ArtPicker
+                commanderName={player.commanderName}
+                currentArt={player.commanderImage}
+                onSelect={onArtChange}
+              />
+            )}
             {/* Disconnected indicator */}
             {!player.isConnected && (
               <span className="text-xs text-red-400 bg-black/50 px-2 py-0.5 rounded font-medium">

@@ -77,17 +77,26 @@ async def websocket_endpoint(
                 target_id = message.get("targetId")
                 amount = message.get("amount", 0)
                 room_manager.adjust_life(room, target_id, amount)
+                # Check elimination after life change
+                if target_id:
+                    room_manager.check_elimination(room, target_id)
 
             elif action == "adjust_poison":
                 target_id = message.get("targetId")
                 amount = message.get("amount", 0)
                 room_manager.adjust_poison(room, target_id, amount)
+                # Check elimination after poison change
+                if target_id:
+                    room_manager.check_elimination(room, target_id)
 
             elif action == "commander_damage":
                 commander_source_id = message.get("commanderSourceId")
                 to_id = message.get("toId")
                 amount = message.get("amount", 0)
                 room_manager.apply_commander_damage_v2(room, commander_source_id, to_id, amount)
+                # Check elimination after commander damage
+                if to_id:
+                    room_manager.check_elimination(room, to_id)
 
             elif action == "select_starter":
                 starter_id = room_manager.select_random_starter(room)

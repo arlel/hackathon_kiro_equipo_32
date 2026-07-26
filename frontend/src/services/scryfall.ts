@@ -93,3 +93,38 @@ export function getColorDisplay(colors: string[]): string {
   if (colors.length === 0) return '⬜' // Colorless
   return colors.map((c) => colorMap[c] || c).join('')
 }
+
+/**
+ * Fetch all print versions (art variants) of a card by exact name.
+ * Returns an array of art_crop URLs from different printings.
+ */
+export async function getCardArtVariants(cardName: string): Promise<{ id: string; artCrop: string; setName: string }[]> {
+  if (!cardName) return []
+
+  const query = encodeURIComponent(`!"${cardName}" unique:prints`)
+  const url = `${SCRYFALL_API}/cards/search?q=${query}&order=released&dir=desc`
+
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return []
+
+    const data: ScryfallSearchResponse = await res.json()
+    const variants: { id: string; artCrop: string; setName: string }[] = []
+
+    for (const card of data.data) {
+      const artCrop = getCardImageUrl(card, 'art_crop')
+      if (artCrop) {
+        variants.push({
+          id: card.id,
+          artCrop,
+          setName: (card as unknown as { set_name?: string }).set_name || '',
+        })
+      }
+    }
+
+    return variants
+  } catch (error) {
+    console.error('Scryfall art variants error:', error)
+    return []
+  }
+}
