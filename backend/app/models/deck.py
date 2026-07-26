@@ -20,5 +20,7 @@ class Deck(Base):
     partner_image = Column(String(500), nullable=True)
     format = Column(String(20), nullable=False)  # "commander" | "20vida" | "custom"
     status = Column(String(20), default="active")  # "active" | "inactive"
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     last_used_at = Column(DateTime(timezone=True), nullable=True)

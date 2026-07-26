@@ -35,7 +35,9 @@ async def websocket_endpoint(
 ):
     await websocket.accept()
 
-    actual_starting_life = starting_life if starting_life > 0 else FORMAT_LIFE.get(format, 40)
+    actual_starting_life = (
+        starting_life if starting_life > 0 else FORMAT_LIFE.get(format, 40)
+    )
     room = room_manager.get_or_create_room(
         room_code,
         format,
@@ -50,15 +52,24 @@ async def websocket_endpoint(
     is_reconnection = player_id in room.players
 
     if connected_count >= MAX_PLAYERS and not is_reconnection:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": "La sala está llena (máximo 12 jugadores)",
-        }))
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "error",
+                    "message": "La sala está llena (máximo 12 jugadores)",
+                }
+            )
+        )
         await websocket.close(code=4001)
         return
 
     room_manager.add_player(
-        room, player_id, player_name, commander_name, commander_image, websocket,
+        room,
+        player_id,
+        player_name,
+        commander_name,
+        commander_image,
+        websocket,
         partner_name=partner_name,
         partner_image=partner_image,
         deck_id=deck_id if deck_id else None,
@@ -93,7 +104,9 @@ async def websocket_endpoint(
                 commander_source_id = message.get("commanderSourceId")
                 to_id = message.get("toId")
                 amount = message.get("amount", 0)
-                room_manager.apply_commander_damage_v2(room, commander_source_id, to_id, amount)
+                room_manager.apply_commander_damage_v2(
+                    room, commander_source_id, to_id, amount
+                )
                 # Check elimination after commander damage
                 if to_id:
                     room_manager.check_elimination(room, to_id)
@@ -102,11 +115,13 @@ async def websocket_endpoint(
                 starter_id = room_manager.select_random_starter(room)
                 if starter_id:
                     starter_name = room.players[starter_id].username
-                    starter_msg = json.dumps({
-                        "type": "starter_selected",
-                        "playerId": starter_id,
-                        "playerName": starter_name,
-                    })
+                    starter_msg = json.dumps(
+                        {
+                            "type": "starter_selected",
+                            "playerId": starter_id,
+                            "playerName": starter_name,
+                        }
+                    )
                     for player in room.players.values():
                         if player.websocket and player.is_connected:
                             try:
@@ -150,13 +165,17 @@ async def websocket_endpoint(
                                 id=uuid.uuid4(),
                                 game_id=game.id,
                                 user_id=None,
-                                deck_id=uuid.UUID(p_data["deck_id"]) if p_data.get("deck_id") else None,
+                                deck_id=uuid.UUID(p_data["deck_id"])
+                                if p_data.get("deck_id")
+                                else None,
                                 player_name=p_data["username"],
                                 commander_name=p_data["commander_name"],
                                 partner_name=p_data["partner_name"],
                                 final_life=p_data["final_life"],
                                 final_poison=p_data["final_poison"],
-                                commander_damage_received=p_data["commander_damage_received"],
+                                commander_damage_received=p_data[
+                                    "commander_damage_received"
+                                ],
                                 is_winner=p_data["is_winner"],
                                 elimination_cause=p_data["elimination_cause"],
                                 elimination_order=p_data["elimination_order"],
@@ -166,6 +185,7 @@ async def websocket_endpoint(
                         await session.commit()
                 except Exception as e:
                     import logging
+
                     logging.getLogger(__name__).warning(
                         "Failed to persist game to database: %s", e
                     )
@@ -176,11 +196,13 @@ async def websocket_endpoint(
                     if winner_id and winner_id in room.players
                     else None
                 )
-                game_ended_msg = json.dumps({
-                    "type": "game_ended",
-                    "winnerId": winner_id,
-                    "winnerName": winner_name,
-                })
+                game_ended_msg = json.dumps(
+                    {
+                        "type": "game_ended",
+                        "winnerId": winner_id,
+                        "winnerName": winner_name,
+                    }
+                )
                 for player in room.players.values():
                     if player.websocket and player.is_connected:
                         try:

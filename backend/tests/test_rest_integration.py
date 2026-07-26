@@ -88,7 +88,9 @@ def mock_current_user() -> dict:
 class TestRegister:
     """Test user registration endpoint."""
 
-    def test_register_new_user_returns_201(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_register_new_user_returns_201(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Register a new user with valid data and expect 201."""
         # Mock: no existing user found
         mock_result = MagicMock()
@@ -112,7 +114,9 @@ class TestRegister:
         data = response.json()
         assert "message" in data
 
-    def test_register_duplicate_user_returns_400(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_register_duplicate_user_returns_400(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Register with existing email/username returns 400."""
         # Mock: existing user found
         mock_result = MagicMock()
@@ -140,7 +144,9 @@ class TestRegister:
 class TestLogin:
     """Test user login endpoint."""
 
-    def test_login_valid_credentials_returns_token(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_login_valid_credentials_returns_token(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Login with correct credentials returns access_token."""
         # Create a mock user object
         mock_user = MagicMock()
@@ -166,7 +172,9 @@ class TestLogin:
         assert data["user"]["username"] == TEST_USERNAME
         assert data["user"]["email"] == TEST_EMAIL
 
-    def test_login_invalid_credentials_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_login_invalid_credentials_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Login with wrong password returns 401."""
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None  # user not found
@@ -189,17 +197,23 @@ class TestLogin:
 class TestAuthRequired:
     """Test that protected endpoints reject unauthenticated requests."""
 
-    def test_get_decks_without_token_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_get_decks_without_token_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Accessing /api/decks without Authorization header returns 401/403."""
         response = client.get("/api/decks/")
         assert response.status_code in (401, 403)
 
-    def test_get_stats_without_token_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_get_stats_without_token_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Accessing /api/games/stats without token returns 401/403."""
         response = client.get("/api/games/stats")
         assert response.status_code in (401, 403)
 
-    def test_get_history_without_token_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_get_history_without_token_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Accessing /api/games/history without token returns 401/403."""
         response = client.get("/api/games/history")
         assert response.status_code in (401, 403)
@@ -267,7 +281,9 @@ class TestCreateDeck:
         assert data["status"] == "active"
         assert "created_at" in data
 
-    def test_create_deck_without_auth_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_create_deck_without_auth_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Creating a deck without auth token returns 401/403."""
         response = client.post(
             "/api/decks/",
@@ -318,7 +334,9 @@ class TestGetStats:
         assert data["eliminations_by_commander"] == 3
         assert data["eliminations_by_poison"] == 1
 
-    def test_get_stats_without_auth_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_get_stats_without_auth_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Accessing stats without token is rejected."""
         response = client.get("/api/games/stats")
         assert response.status_code in (401, 403)
@@ -422,7 +440,11 @@ class TestEditGame:
         mock_player_result.scalar_one_or_none.return_value = mock_player
 
         mock_db.execute = AsyncMock(
-            side_effect=[mock_game_result, mock_participation_result, mock_player_result]
+            side_effect=[
+                mock_game_result,
+                mock_participation_result,
+                mock_player_result,
+            ]
         )
 
         response = client.put(
@@ -436,7 +458,9 @@ class TestEditGame:
         assert data["eliminationCause"] == "commander"
         assert data["eliminationOrder"] == 1
 
-    def test_edit_game_without_auth_returns_401(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_edit_game_without_auth_returns_401(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Editing a game without auth token is rejected."""
         game_id = str(uuid.uuid4())
         response = client.put(
@@ -454,7 +478,9 @@ class TestEditGame:
 class TestFullFlow:
     """Test the complete auth → create → read flow."""
 
-    def test_register_login_create_deck_flow(self, client: TestClient, mock_db: AsyncMock) -> None:
+    def test_register_login_create_deck_flow(
+        self, client: TestClient, mock_db: AsyncMock
+    ) -> None:
         """Complete flow: register → login → create deck."""
         # --- Step 1: Register ---
         mock_result_no_user = MagicMock()

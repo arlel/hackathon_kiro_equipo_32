@@ -47,18 +47,14 @@ class TestTwoClientsConnect:
     def test_both_clients_receive_state_update_with_correct_players(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("ROOM01", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("ROOM01", "p1", "Alice")) as ws1:
             # First client receives state_update after joining
             msg1 = json.loads(ws1.receive_text())
             assert msg1["type"] == "state_update"
             assert len(msg1["players"]) == 1
             assert msg1["players"][0]["username"] == "Alice"
 
-            with client.websocket_connect(
-                _ws_url("ROOM01", "p2", "Bob")
-            ) as ws2:
+            with client.websocket_connect(_ws_url("ROOM01", "p2", "Bob")) as ws2:
                 # Second client triggers a broadcast to both
                 # ws1 receives update with 2 players
                 msg1_updated = json.loads(ws1.receive_text())
@@ -86,9 +82,7 @@ class TestTwoClientsConnect:
     def test_room_code_in_state_update(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("ROOM03", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("ROOM03", "p1", "Alice")) as ws1:
             msg = json.loads(ws1.receive_text())
             assert msg["roomCode"] == "ROOM03"
 
@@ -99,25 +93,25 @@ class TestAdjustLife:
     def test_adjust_life_broadcasts_to_all_clients(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("LIFE01", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("LIFE01", "p1", "Alice")) as ws1:
             # Consume initial state
             ws1.receive_text()
 
-            with client.websocket_connect(
-                _ws_url("LIFE01", "p2", "Bob")
-            ) as ws2:
+            with client.websocket_connect(_ws_url("LIFE01", "p2", "Bob")) as ws2:
                 # Consume join broadcasts
                 ws1.receive_text()
                 ws2.receive_text()
 
                 # p1 sends adjust_life targeting p2
-                ws1.send_text(json.dumps({
-                    "action": "adjust_life",
-                    "targetId": "p2",
-                    "amount": -3,
-                }))
+                ws1.send_text(
+                    json.dumps(
+                        {
+                            "action": "adjust_life",
+                            "targetId": "p2",
+                            "amount": -3,
+                        }
+                    )
+                )
 
                 # Both clients receive updated state
                 state1 = json.loads(ws1.receive_text())
@@ -127,28 +121,26 @@ class TestAdjustLife:
                 assert state2["type"] == "state_update"
 
                 # Find p2 in the state and verify life changed
-                p2_in_state1 = next(
-                    p for p in state1["players"] if p["id"] == "p2"
-                )
-                p2_in_state2 = next(
-                    p for p in state2["players"] if p["id"] == "p2"
-                )
+                p2_in_state1 = next(p for p in state1["players"] if p["id"] == "p2")
+                p2_in_state2 = next(p for p in state2["players"] if p["id"] == "p2")
                 assert p2_in_state1["life"] == 37  # 40 - 3
                 assert p2_in_state2["life"] == 37
 
     def test_adjust_life_positive_amount(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("LIFE02", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("LIFE02", "p1", "Alice")) as ws1:
             ws1.receive_text()
 
-            ws1.send_text(json.dumps({
-                "action": "adjust_life",
-                "targetId": "p1",
-                "amount": 5,
-            }))
+            ws1.send_text(
+                json.dumps(
+                    {
+                        "action": "adjust_life",
+                        "targetId": "p1",
+                        "amount": 5,
+                    }
+                )
+            )
 
             state = json.loads(ws1.receive_text())
             p1 = next(p for p in state["players"] if p["id"] == "p1")
@@ -173,21 +165,21 @@ class TestAdjustPoison:
                 ws2.receive_text()
 
                 # p1 sends adjust_poison targeting p2
-                ws1.send_text(json.dumps({
-                    "action": "adjust_poison",
-                    "targetId": "p2",
-                    "amount": 3,
-                }))
+                ws1.send_text(
+                    json.dumps(
+                        {
+                            "action": "adjust_poison",
+                            "targetId": "p2",
+                            "amount": 3,
+                        }
+                    )
+                )
 
                 state1 = json.loads(ws1.receive_text())
                 state2 = json.loads(ws2.receive_text())
 
-                p2_in_state1 = next(
-                    p for p in state1["players"] if p["id"] == "p2"
-                )
-                p2_in_state2 = next(
-                    p for p in state2["players"] if p["id"] == "p2"
-                )
+                p2_in_state1 = next(p for p in state1["players"] if p["id"] == "p2")
+                p2_in_state2 = next(p for p in state2["players"] if p["id"] == "p2")
                 assert p2_in_state1["poisonCounters"] == 3
                 assert p2_in_state2["poisonCounters"] == 3
 
@@ -199,11 +191,15 @@ class TestAdjustPoison:
         ) as ws1:
             ws1.receive_text()
 
-            ws1.send_text(json.dumps({
-                "action": "adjust_poison",
-                "targetId": "p1",
-                "amount": -5,
-            }))
+            ws1.send_text(
+                json.dumps(
+                    {
+                        "action": "adjust_poison",
+                        "targetId": "p1",
+                        "amount": -5,
+                    }
+                )
+            )
 
             state = json.loads(ws1.receive_text())
             p1 = next(p for p in state["players"] if p["id"] == "p1")
@@ -216,75 +212,75 @@ class TestCommanderDamage:
     def test_commander_damage_updates_life_and_tracking(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("CMD01", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("CMD01", "p1", "Alice")) as ws1:
             ws1.receive_text()
 
-            with client.websocket_connect(
-                _ws_url("CMD01", "p2", "Bob")
-            ) as ws2:
+            with client.websocket_connect(_ws_url("CMD01", "p2", "Bob")) as ws2:
                 ws1.receive_text()
                 ws2.receive_text()
 
                 # p1 deals commander damage to p2
-                ws1.send_text(json.dumps({
-                    "action": "commander_damage",
-                    "commanderSourceId": "p1",
-                    "toId": "p2",
-                    "amount": 7,
-                }))
+                ws1.send_text(
+                    json.dumps(
+                        {
+                            "action": "commander_damage",
+                            "commanderSourceId": "p1",
+                            "toId": "p2",
+                            "amount": 7,
+                        }
+                    )
+                )
 
                 state1 = json.loads(ws1.receive_text())
                 state2 = json.loads(ws2.receive_text())
 
                 # Verify life reduced
-                p2_in_state1 = next(
-                    p for p in state1["players"] if p["id"] == "p2"
-                )
+                p2_in_state1 = next(p for p in state1["players"] if p["id"] == "p2")
                 assert p2_in_state1["life"] == 33  # 40 - 7
 
                 # Verify commander damage tracked
                 assert p2_in_state1["commanderDamage"]["p1"] == 7
 
                 # Same in ws2's view
-                p2_in_state2 = next(
-                    p for p in state2["players"] if p["id"] == "p2"
-                )
+                p2_in_state2 = next(p for p in state2["players"] if p["id"] == "p2")
                 assert p2_in_state2["life"] == 33
                 assert p2_in_state2["commanderDamage"]["p1"] == 7
 
     def test_partner_commander_damage_tracked_separately(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("CMD02", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("CMD02", "p1", "Alice")) as ws1:
             ws1.receive_text()
 
-            with client.websocket_connect(
-                _ws_url("CMD02", "p2", "Bob")
-            ) as ws2:
+            with client.websocket_connect(_ws_url("CMD02", "p2", "Bob")) as ws2:
                 ws1.receive_text()
                 ws2.receive_text()
 
                 # Main commander damage
-                ws1.send_text(json.dumps({
-                    "action": "commander_damage",
-                    "commanderSourceId": "p1",
-                    "toId": "p2",
-                    "amount": 5,
-                }))
+                ws1.send_text(
+                    json.dumps(
+                        {
+                            "action": "commander_damage",
+                            "commanderSourceId": "p1",
+                            "toId": "p2",
+                            "amount": 5,
+                        }
+                    )
+                )
                 ws1.receive_text()
                 ws2.receive_text()
 
                 # Partner commander damage
-                ws1.send_text(json.dumps({
-                    "action": "commander_damage",
-                    "commanderSourceId": "p1:partner",
-                    "toId": "p2",
-                    "amount": 3,
-                }))
+                ws1.send_text(
+                    json.dumps(
+                        {
+                            "action": "commander_damage",
+                            "commanderSourceId": "p1:partner",
+                            "toId": "p2",
+                            "amount": 3,
+                        }
+                    )
+                )
 
                 state = json.loads(ws1.receive_text())
                 ws2.receive_text()
@@ -310,22 +306,22 @@ class TestEndGame:
 
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("END01", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("END01", "p1", "Alice")) as ws1:
             ws1.receive_text()
 
-            with client.websocket_connect(
-                _ws_url("END01", "p2", "Bob")
-            ) as ws2:
+            with client.websocket_connect(_ws_url("END01", "p2", "Bob")) as ws2:
                 ws1.receive_text()
                 ws2.receive_text()
 
                 # p1 sends end_game
-                ws1.send_text(json.dumps({
-                    "action": "end_game",
-                    "winnerId": "p1",
-                }))
+                ws1.send_text(
+                    json.dumps(
+                        {
+                            "action": "end_game",
+                            "winnerId": "p1",
+                        }
+                    )
+                )
 
                 # Both clients receive game_ended message
                 msg1 = json.loads(ws1.receive_text())
@@ -350,15 +346,17 @@ class TestEndGame:
 
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("END02", "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("END02", "p1", "Alice")) as ws1:
             ws1.receive_text()
 
-            ws1.send_text(json.dumps({
-                "action": "end_game",
-                "winnerId": None,
-            }))
+            ws1.send_text(
+                json.dumps(
+                    {
+                        "action": "end_game",
+                        "winnerId": None,
+                    }
+                )
+            )
 
             msg = json.loads(ws1.receive_text())
             assert msg["type"] == "game_ended"
@@ -410,9 +408,7 @@ class TestRoomFullRejection:
         client = TestClient(app)
         room_code = "FULL02"
 
-        with client.websocket_connect(
-            _ws_url(room_code, "p1", "Alice")
-        ) as ws1:
+        with client.websocket_connect(_ws_url(room_code, "p1", "Alice")) as ws1:
             ws1.receive_text()
 
             # Verify the player is in the room

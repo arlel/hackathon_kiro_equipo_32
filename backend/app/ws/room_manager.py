@@ -30,7 +30,9 @@ class PlayerState:
     partner_image: str = ""
     commander_damage: dict = field(default_factory=dict)
     is_connected: bool = True
-    elimination_cause: str | None = None  # "daño normal" | "daño de comandante" | "veneno"
+    elimination_cause: str | None = (
+        None  # "daño normal" | "daño de comandante" | "veneno"
+    )
     elimination_order: int | None = None
     websocket: WebSocket | None = None
     deck_id: str | None = None
@@ -109,7 +111,9 @@ class RoomManager:
             # Reconnection — check 30-minute window
             player = room.players[player_id]
             if player.disconnected_at:
-                elapsed = (datetime.now(timezone.utc) - player.disconnected_at).total_seconds()
+                elapsed = (
+                    datetime.now(timezone.utc) - player.disconnected_at
+                ).total_seconds()
                 if elapsed > 1800:  # 30 minutes
                     # Expired reconnection — remove old state, treat as new player
                     del room.players[player_id]
@@ -193,7 +197,9 @@ class RoomManager:
         player.life -= actual_change
         player.commander_damage[commander_source_id] = new_value
 
-    def apply_commander_damage(self, room: Room, from_id: str, to_id: str, amount: int) -> None:
+    def apply_commander_damage(
+        self, room: Room, from_id: str, to_id: str, amount: int
+    ) -> None:
         """Apply commander damage from one player to another (legacy method)."""
         if to_id in room.players and from_id in room.players:
             player = room.players[to_id]
@@ -213,7 +219,8 @@ class RoomManager:
             The selected player's ID, or None if no active players exist.
         """
         active_players = [
-            player for player in room.players.values()
+            player
+            for player in room.players.values()
             if player.is_connected and player.elimination_cause is None
         ]
         if not active_players:
@@ -272,7 +279,11 @@ class RoomManager:
 
         # Adjust remaining elimination orders to fill the gap
         for other in room.players.values():
-            if other.elimination_order is not None and old_order is not None and other.elimination_order > old_order:
+            if (
+                other.elimination_order is not None
+                and old_order is not None
+                and other.elimination_order > old_order
+            ):
                 other.elimination_order -= 1
 
         # Decrement the room counter
@@ -343,21 +354,23 @@ class RoomManager:
         """Serialize the room state to a JSON string for broadcasting."""
         players_data = []
         for p in room.players.values():
-            players_data.append({
-                "id": p.id,
-                "username": p.username,
-                "life": p.life,
-                "poisonCounters": p.poison_counters,
-                "commanderName": p.commander_name,
-                "commanderImage": p.commander_image,
-                "partnerName": p.partner_name,
-                "partnerImage": p.partner_image,
-                "commanderDamage": p.commander_damage,
-                "isConnected": p.is_connected,
-                "eliminationCause": p.elimination_cause,
-                "eliminationOrder": p.elimination_order,
-                "deckId": p.deck_id,
-            })
+            players_data.append(
+                {
+                    "id": p.id,
+                    "username": p.username,
+                    "life": p.life,
+                    "poisonCounters": p.poison_counters,
+                    "commanderName": p.commander_name,
+                    "commanderImage": p.commander_image,
+                    "partnerName": p.partner_name,
+                    "partnerImage": p.partner_image,
+                    "commanderDamage": p.commander_damage,
+                    "isConnected": p.is_connected,
+                    "eliminationCause": p.elimination_cause,
+                    "eliminationOrder": p.elimination_order,
+                    "deckId": p.deck_id,
+                }
+            )
 
         # Build elimination order list: player IDs sorted by elimination_order, excluding None
         elimination_order = [
@@ -368,18 +381,20 @@ class RoomManager:
             )
         ]
 
-        return json.dumps({
-            "type": "state_update",
-            "roomCode": room.code,
-            "format": room.format,
-            "config": {
-                "poisonEnabled": room.config.poison_enabled,
-                "turnCounterEnabled": room.config.turn_counter_enabled,
-            },
-            "turnCount": room.turn_count,
-            "players": players_data,
-            "eliminationOrder": elimination_order,
-        })
+        return json.dumps(
+            {
+                "type": "state_update",
+                "roomCode": room.code,
+                "format": room.format,
+                "config": {
+                    "poisonEnabled": room.config.poison_enabled,
+                    "turnCounterEnabled": room.config.turn_counter_enabled,
+                },
+                "turnCount": room.turn_count,
+                "players": players_data,
+                "eliminationOrder": elimination_order,
+            }
+        )
 
     async def broadcast(self, room: Room) -> None:
         """Send the current state to all connected players in the room."""

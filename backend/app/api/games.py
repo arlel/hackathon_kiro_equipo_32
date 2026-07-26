@@ -48,26 +48,28 @@ async def get_history(
         )
         players = result.scalars().all()
 
-        response.append({
-            "id": str(game.id),
-            "roomCode": game.room_code,
-            "format": game.format,
-            "turnCount": game.turn_count,
-            "startedAt": game.started_at.isoformat() if game.started_at else None,
-            "endedAt": game.ended_at.isoformat() if game.ended_at else None,
-            "players": [
-                {
-                    "userId": str(p.user_id) if p.user_id else None,
-                    "username": p.player_name,
-                    "commanderName": p.commander_name,
-                    "finalLife": p.final_life,
-                    "isWinner": p.is_winner,
-                    "eliminationCause": p.elimination_cause,
-                    "eliminationOrder": p.elimination_order,
-                }
-                for p in players
-            ],
-        })
+        response.append(
+            {
+                "id": str(game.id),
+                "roomCode": game.room_code,
+                "format": game.format,
+                "turnCount": game.turn_count,
+                "startedAt": game.started_at.isoformat() if game.started_at else None,
+                "endedAt": game.ended_at.isoformat() if game.ended_at else None,
+                "players": [
+                    {
+                        "userId": str(p.user_id) if p.user_id else None,
+                        "username": p.player_name,
+                        "commanderName": p.commander_name,
+                        "finalLife": p.final_life,
+                        "isWinner": p.is_winner,
+                        "eliminationCause": p.elimination_cause,
+                        "eliminationOrder": p.elimination_order,
+                    }
+                    for p in players
+                ],
+            }
+        )
 
     return response
 

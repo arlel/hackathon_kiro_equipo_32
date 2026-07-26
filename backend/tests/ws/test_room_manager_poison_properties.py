@@ -2,6 +2,7 @@
 
 Uses hypothesis for property-based testing with minimum 100 iterations.
 """
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -24,7 +25,11 @@ def test_property_15_poison_arithmetic_and_clamping(initial_poison: int, amount:
         config=RoomConfig(format="commander", starting_life=40, poison_enabled=True),
     )
     player = PlayerState(
-        id="p1", username="test", life=40, poison_counters=initial_poison, websocket=None
+        id="p1",
+        username="test",
+        life=40,
+        poison_counters=initial_poison,
+        websocket=None,
     )
     room.players["p1"] = player
 

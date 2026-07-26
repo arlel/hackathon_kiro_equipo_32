@@ -65,9 +65,7 @@ async def get_general_stats(session: AsyncSession, user_id: UUID) -> GeneralStat
     )
 
 
-async def get_stats_by_deck(
-    session: AsyncSession, user_id: UUID
-) -> list[DeckStats]:
+async def get_stats_by_deck(session: AsyncSession, user_id: UUID) -> list[DeckStats]:
     """Calculate statistics grouped by deck for a user.
 
     For each deck_id used by the user, calculate total games, wins, win rate.
@@ -137,9 +135,7 @@ async def get_stats_by_deck(
     return stats
 
 
-async def get_stats_by_rival(
-    session: AsyncSession, user_id: UUID
-) -> list[RivalStats]:
+async def get_stats_by_rival(session: AsyncSession, user_id: UUID) -> list[RivalStats]:
     """Calculate statistics grouped by rival for a user.
 
     For each other player the user has played against, calculate total games
@@ -195,9 +191,7 @@ async def get_stats_by_rival(
     stats: list[RivalStats] = []
     for rival_name, records in rival_groups.items():
         total = len(records)
-        user_wins = sum(
-            1 for r in records if user_wins_by_game.get(r.game_id, False)
-        )
+        user_wins = sum(1 for r in records if user_wins_by_game.get(r.game_id, False))
         win_rate = round((user_wins / total) * 100, 1) if total > 0 else 0.0
 
         stats.append(
@@ -214,9 +208,7 @@ async def get_stats_by_rival(
     return stats
 
 
-async def get_game_log(
-    session: AsyncSession, user_id: UUID
-) -> list[GameLogEntry]:
+async def get_game_log(session: AsyncSession, user_id: UUID) -> list[GameLogEntry]:
     """Get a log of all finished games for a user.
 
     Returns a list of game entries with date, players, decks, and
@@ -242,9 +234,7 @@ async def get_game_log(
 
     # Get all games ordered by end date descending
     games_stmt = (
-        select(Game)
-        .where(Game.id.in_(user_game_ids))
-        .order_by(Game.ended_at.desc())
+        select(Game).where(Game.id.in_(user_game_ids)).order_by(Game.ended_at.desc())
     )
     games_result = await session.execute(games_stmt)
     games = games_result.scalars().all()
@@ -275,9 +265,7 @@ async def get_game_log(
     return entries
 
 
-async def recalculate_affected_stats(
-    session: AsyncSession, game_id: UUID
-) -> None:
+async def recalculate_affected_stats(session: AsyncSession, game_id: UUID) -> None:
     """Recalculate stats after a game edit.
 
     Currently a no-op since stats are calculated on-demand.

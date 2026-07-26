@@ -175,9 +175,7 @@ class TestLifeAutomaticAdjustment:
 
         assert room.players["player2"].life == life_after_damage + 4
 
-    def test_life_can_go_negative(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_life_can_go_negative(self, room_manager: RoomManager, room: Room) -> None:
         """Life has no lower bound per Requirement 4.7."""
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 50)
 

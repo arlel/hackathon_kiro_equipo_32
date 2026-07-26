@@ -30,7 +30,9 @@ class TestProperty2StartingLifeByFormat:
         **Validates: Requirements 1.4, 4.9, 11.2**
         """
         manager = RoomManager()
-        room = manager.get_or_create_room("CMD001", format="commander", starting_life=40)
+        room = manager.get_or_create_room(
+            "CMD001", format="commander", starting_life=40
+        )
 
         player = PlayerState(
             id="p1", username="test", life=room.starting_life, websocket=None
@@ -132,9 +134,7 @@ class TestProperty3MaxPlayersPerRoom:
         )
 
         for i in range(num_players):
-            connected_count = sum(
-                1 for p in room.players.values() if p.is_connected
-            )
+            connected_count = sum(1 for p in room.players.values() if p.is_connected)
             if connected_count < self.MAX_PLAYERS:
                 player = PlayerState(
                     id=f"p{i}",
