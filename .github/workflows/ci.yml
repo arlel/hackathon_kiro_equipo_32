@@ -11,6 +11,8 @@ jobs:
   frontend:
     name: Frontend (lint + build + test)
     runs-on: ubuntu-latest
+    paths:
+      - "frontend/**"
     defaults:
       run:
         working-directory: frontend
@@ -39,6 +41,8 @@ jobs:
   backend:
     name: Backend (lint + test)
     runs-on: ubuntu-latest
+    paths:
+      - "backend/**"
     defaults:
       run:
         working-directory: backend
