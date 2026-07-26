@@ -69,6 +69,7 @@ jobs:
         run: alembic upgrade head
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/mtg_counter
+          SECRET_KEY: ci-test-secret-key-not-for-production
 
       - name: Test
         run: pytest tests/ -v --tb=short
