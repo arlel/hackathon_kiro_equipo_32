@@ -76,7 +76,11 @@ export function useWebSocket(options: UseWebSocketOptions) {
       deck_id: opts.deckId || '',
     })
 
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/game-ws/${opts.roomCode}?${params}`
+    const wsBase = import.meta.env.VITE_WS_URL
+      ? import.meta.env.VITE_WS_URL
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+
+    const wsUrl = `${wsBase}/game-ws/${opts.roomCode}?${params}`
 
     setStatus('connecting')
     const ws = new WebSocket(wsUrl)

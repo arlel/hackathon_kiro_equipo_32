@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { GameRecord, PlayerResult, EliminationCause } from '@/types/game'
-import { editGamePlayer } from '@/services/api'
+import { editGamePlayer, getHistory } from '@/services/api'
 
 function getEliminationLabel(cause: EliminationCause | undefined): string | null {
   switch (cause) {
@@ -40,14 +40,8 @@ export default function History() {
           return
         }
 
-        const res = await fetch('/api/games/history', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-
-        if (res.ok) {
-          const data = await res.json()
-          setGames(data)
-        }
+        const data = await getHistory()
+        setGames(data as GameRecord[])
       } catch (err) {
         console.error('Error fetching history:', err)
       } finally {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { login } from '@/services/api'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -12,24 +13,12 @@ export default function Login() {
     setError('')
     
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        setError(data.detail || 'Error al iniciar sesión')
-        return
-      }
-
-      const data = await res.json()
+      const data = await login(email, password)
       localStorage.setItem('token', data.access_token)
       localStorage.setItem('user', JSON.stringify(data.user))
       navigate('/')
-    } catch {
-      setError('Error de conexión')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de conexión')
     }
   }
 

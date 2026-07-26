@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { register } from '@/services/api'
 
 function validatePassword(password: string): string | null {
   if (password.length < 8) return 'Mínimo 8 caracteres'
@@ -31,27 +32,10 @@ export default function Register() {
     }
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        // Handle Pydantic validation errors
-        if (data.detail && Array.isArray(data.detail)) {
-          const msgs = data.detail.map((d: { msg?: string }) => d.msg || '').join('. ')
-          setError(msgs || 'Error al registrarse')
-        } else {
-          setError(data.detail || 'Error al registrarse')
-        }
-        return
-      }
-
+      await register(username, email, password)
       navigate('/login')
-    } catch {
-      setError('Error de conexión')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error de conexión')
     }
   }
 
