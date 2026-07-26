@@ -2,6 +2,7 @@ import json
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import WebSocket
 
@@ -28,7 +29,7 @@ class PlayerState:
     commander_image: str = ""
     partner_name: str = ""
     partner_image: str = ""
-    commander_damage: dict = field(default_factory=dict)
+    commander_damage: dict[str, int] = field(default_factory=dict)
     is_connected: bool = True
     elimination_cause: str | None = (
         None  # "daño normal" | "daño de comandante" | "veneno"
@@ -289,7 +290,7 @@ class RoomManager:
         # Decrement the room counter
         room.elimination_counter -= 1
 
-    def finalize_game(self, room: Room, winner_id: str | None = None) -> dict:
+    def finalize_game(self, room: Room, winner_id: str | None = None) -> dict[str, Any]:
         """Prepare the room's final state for persistence.
 
         Collects all relevant game data (life totals, poison, commander damage,

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -19,7 +20,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict) -> str:
+def create_access_token(data: dict[str, Any]) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
@@ -28,7 +29,7 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
-def decode_token(token: str) -> dict:
+def decode_token(token: str) -> dict[str, Any]:
     try:
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
@@ -43,7 +44,7 @@ def decode_token(token: str) -> dict:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-):
+) -> dict[str, str]:
     payload = decode_token(credentials.credentials)
     user_id = payload.get("sub")
     if user_id is None:

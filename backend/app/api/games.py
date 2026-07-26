@@ -19,7 +19,7 @@ router = APIRouter(prefix="/games", tags=["games"])
 
 @router.get("/history")
 async def get_history(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get game history for the authenticated user."""
@@ -76,7 +76,7 @@ async def get_history(
 
 @router.get("/stats", response_model=GeneralStats)
 async def get_stats(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> GeneralStats:
     """Get general statistics for the authenticated user."""
@@ -86,7 +86,7 @@ async def get_stats(
 
 @router.get("/stats/by-deck", response_model=list[DeckStats])
 async def get_stats_by_deck_endpoint(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[DeckStats]:
     """Get statistics grouped by deck for the authenticated user."""
@@ -96,7 +96,7 @@ async def get_stats_by_deck_endpoint(
 
 @router.get("/stats/by-rival", response_model=list[RivalStats])
 async def get_stats_by_rival_endpoint(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[RivalStats]:
     """Get statistics grouped by rival for the authenticated user."""
@@ -106,7 +106,7 @@ async def get_stats_by_rival_endpoint(
 
 @router.get("/stats/log", response_model=list[GameLogEntry])
 async def get_game_log_endpoint(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[GameLogEntry]:
     """Get a complete game log for the authenticated user."""
@@ -119,7 +119,7 @@ async def edit_game(
     game_id: str,
     body: GameEditRequest,
     player_name: str = Query(..., description="Name of the player to edit"),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Edit a player's elimination data in a finished game.

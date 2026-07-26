@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get("/search")
 async def search_users(
     q: str = Query(..., min_length=2),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Search users by username for adding to games."""

@@ -30,7 +30,7 @@ def _deck_to_response(deck: Deck) -> DeckResponse:
 
 @router.get("/", response_model=list[DeckResponse])
 async def list_decks(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[DeckResponse]:
     """List all decks for the authenticated user, ordered by creation date descending."""
@@ -46,7 +46,7 @@ async def list_decks(
 @router.post("/", response_model=DeckResponse, status_code=status.HTTP_201_CREATED)
 async def create_deck(
     body: DeckCreate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DeckResponse:
     """Create a new deck for the authenticated user."""
@@ -69,7 +69,7 @@ async def create_deck(
 async def update_deck(
     deck_id: str,
     body: DeckUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DeckResponse:
     """Update a deck's status (active/inactive)."""
@@ -92,7 +92,7 @@ async def update_deck(
 @router.delete("/{deck_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_deck(
     deck_id: str,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict[str, str] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a deck belonging to the authenticated user."""
