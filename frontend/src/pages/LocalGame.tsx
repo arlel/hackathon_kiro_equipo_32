@@ -10,6 +10,7 @@ import CmdDamagePanel from '@/components/CmdDamagePanel'
 import StarterPicker from '@/components/StarterPicker'
 import CommanderSearch from '@/components/CommanderSearch'
 import DeckSelector from '@/components/DeckSelector'
+import RoomSettings from '@/components/RoomSettings'
 import type { ScryfallCard } from '@/services/scryfall'
 import { getCardImageUrl } from '@/services/scryfall'
 
@@ -69,6 +70,7 @@ export default function LocalGame() {
   const [starterId, setStarterId] = useState<string | null>(null)
   const [gameEnded, setGameEnded] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
 
   const handleAdjustLife = useCallback(
     (playerId: string, amount: number) => {
@@ -419,7 +421,7 @@ export default function LocalGame() {
             Sala Local:{' '}
             <span className="text-purple-400 font-mono font-bold">{room.code}</span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-gray-400">
             {room.config.turnCounterEnabled && (
               <button
                 type="button"
@@ -429,9 +431,22 @@ export default function LocalGame() {
                 🔄 Turno: {room.turnCount}
               </button>
             )}
-            <span>
-              {room.players.length} jugadores • {room.config.format}
-            </span>
+            <span>{room.players.length}P • {room.config.format}</span>
+            <RoomSettings
+              poisonEnabled={room.config.poisonEnabled}
+              turnCounterEnabled={room.config.turnCounterEnabled}
+              onTogglePoison={(enabled) => {
+                room.config.poisonEnabled = enabled
+                // Force re-render by triggering a state update
+                setShowCmdDamage(showCmdDamage)
+              }}
+              onToggleTurnCounter={(enabled) => {
+                room.config.turnCounterEnabled = enabled
+                setShowCmdDamage(showCmdDamage)
+              }}
+              showAddPlayer={!gameEnded}
+              onAddPlayer={() => setShowAddPlayerModal(true)}
+            />
           </div>
         </div>
 
@@ -519,6 +534,20 @@ export default function LocalGame() {
               player={player}
               isLocal={idx === 0}
               colorIndex={idx}
+              onArtChange={(artUrl) => {
+                // Update player's commander image locally
+                const updated = { ...player, commanderImage: artUrl }
+                room.players[idx] = updated as typeof player
+                setShowCmdDamage(showCmdDamage) // force re-render
+              }}
+              poisonSlot={
+                !gameEnded && room.config.poisonEnabled ? (
+                  <PoisonCounter
+                    poison={player.poisonCounters}
+                    onAdjust={(amount) => handleAdjustPoison(player.id, amount)}
+                  />
+                ) : undefined
+              }
             >
               {/* Life Counter */}
               {!gameEnded && (
@@ -526,16 +555,6 @@ export default function LocalGame() {
                   <LifeCounter
                     life={player.life}
                     onAdjust={(amount) => handleAdjustLife(player.id, amount)}
-                  />
-                </div>
-              )}
-
-              {/* Poison Counter */}
-              {!gameEnded && room.config.poisonEnabled && (
-                <div className="mt-2">
-                  <PoisonCounter
-                    poison={player.poisonCounters}
-                    onAdjust={(amount) => handleAdjustPoison(player.id, amount)}
                   />
                 </div>
               )}
@@ -548,7 +567,7 @@ export default function LocalGame() {
                     onClick={() =>
                       setShowCmdDamage(showCmdDamage === player.id ? null : player.id)
                     }
-                    className="mt-2 text-xs text-gray-200 hover:text-white transition-colors w-full text-center"
+                    className="mt-1 text-xs text-gray-200 hover:text-white transition-colors w-full text-center"
                   >
                     ⚔️ Commander Damage
                   </button>
@@ -567,6 +586,81 @@ export default function LocalGame() {
             </PlayerCard>
           ))}
         </div>
+
+        {/* Add player mid-game modal */}
+        {showAddPlayerModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-sm space-y-3">
+              <h3 className="text-lg font-bold text-white">Agregar Jugador</h3>
+              <input
+                type="text"
+                placeholder="Nombre del jugador"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                maxLength={30}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500"
+              />
+              {room.config.format === 'commander' && (
+                <CommanderSearch
+                  value={newCommanderName}
+                  onChange={(name, card?: ScryfallCard) => {
+                    setNewCommanderName(name)
+                    if (card) {
+                      const artUrl = getCardImageUrl(card, 'art_crop')
+                      setNewCommanderImage(artUrl || '')
+                    } else {
+                      setNewCommanderImage('')
+                    }
+                  }}
+                  onSelect={(commander, partner) => {
+                    setNewCommanderName(commander.name)
+                    setNewCommanderImage(commander.image)
+                    if (partner) {
+                      setNewPartnerName(partner.name)
+                      setNewPartnerImage(partner.image)
+                    } else {
+                      setNewPartnerName('')
+                      setNewPartnerImage('')
+                    }
+                  }}
+                  placeholder="Buscar Commander..."
+                />
+              )}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newPlayerName.trim()) {
+                      addPlayer(newPlayerName.trim(), {
+                        commanderName: newCommanderName || undefined,
+                        commanderImage: newCommanderImage || undefined,
+                        partnerName: newPartnerName || undefined,
+                        partnerImage: newPartnerImage || undefined,
+                      })
+                      setNewPlayerName('')
+                      setNewCommanderName('')
+                      setNewCommanderImage('')
+                      setNewPartnerName('')
+                      setNewPartnerImage('')
+                      setShowAddPlayerModal(false)
+                    }
+                  }}
+                  disabled={!newPlayerName.trim()}
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-2 rounded-lg transition-colors"
+                >
+                  Agregar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddPlayerModal(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action buttons */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3 px-2">

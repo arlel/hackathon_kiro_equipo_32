@@ -10,6 +10,7 @@ import LifeCounter from '@/components/LifeCounter'
 import PoisonCounter from '@/components/PoisonCounter'
 import CmdDamagePanel from '@/components/CmdDamagePanel'
 import StarterPicker from '@/components/StarterPicker'
+import RoomSettings from '@/components/RoomSettings'
 import type { ScryfallCard } from '@/services/scryfall'
 import { getCardImageUrl } from '@/services/scryfall'
 
@@ -338,22 +339,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
           </span>
           <span className={`inline-block w-2 h-2 rounded-full ${statusColor}`} title={status}></span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-400">
-          {/* Poison toggle */}
-          <button
-            onClick={() => {
-              const newVal = !poisonEnabled
-              setPoisonEnabled(newVal)
-              sendAction({ action: 'toggle_poison', enabled: newVal })
-            }}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
-              poisonEnabled ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'
-            }`}
-            title={poisonEnabled ? 'Veneno habilitado (click para deshabilitar)' : 'Veneno deshabilitado (click para habilitar)'}
-          >
-            <span>☠️</span>
-            <span className="text-xs">{poisonEnabled ? 'On' : 'Off'}</span>
-          </button>
+        <div className="flex items-center gap-2 text-sm text-gray-400">
           {turnCounterEnabled && (
             <button
               onClick={incrementTurn}
@@ -364,7 +350,19 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
               <span className="font-mono">{turnCount}</span>
             </button>
           )}
-          <span>{players.length} jugadores • {roomFormat}</span>
+          <span>{players.length}P • {roomFormat}</span>
+          <RoomSettings
+            poisonEnabled={poisonEnabled}
+            turnCounterEnabled={turnCounterEnabled}
+            onTogglePoison={(enabled) => {
+              setPoisonEnabled(enabled)
+              sendAction({ action: 'toggle_poison', enabled })
+            }}
+            onToggleTurnCounter={(enabled) => {
+              setTurnCounterEnabled(enabled)
+              sendAction({ action: 'toggle_turn_counter', enabled })
+            }}
+          />
         </div>
       </div>
 
@@ -472,7 +470,15 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
             player={displayPlayer}
             isLocal={isLocalPlayer}
             colorIndex={idx}
-            onArtChange={isLocalPlayer ? (artUrl) => setLocalArtOverride(artUrl) : undefined}
+            onArtChange={(artUrl) => setLocalArtOverride(artUrl)}
+            poisonSlot={
+              poisonEnabled ? (
+                <PoisonCounter
+                  poison={player.poisonCounters}
+                  onAdjust={(amount) => adjustPoison(player.id, amount)}
+                />
+              ) : undefined
+            }
           >
             {/* Life Counter */}
             <div className="flex justify-center">
@@ -481,16 +487,6 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
                 onAdjust={(amount) => adjustLife(player.id, amount)}
               />
             </div>
-
-            {/* Poison Counter */}
-            {poisonEnabled && (
-              <div className="mt-2">
-                <PoisonCounter
-                  poison={player.poisonCounters}
-                  onAdjust={(amount) => adjustPoison(player.id, amount)}
-                />
-              </div>
-            )}
 
             {/* Commander Damage Toggle */}
             {roomFormat === 'commander' && (

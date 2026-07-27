@@ -136,6 +136,10 @@ async def websocket_endpoint(
                 enabled = message.get("enabled", False)
                 room.config.poison_enabled = bool(enabled)
 
+            elif action == "toggle_turn_counter":
+                enabled = message.get("enabled", False)
+                room.config.turn_counter_enabled = bool(enabled)
+
             elif action == "increment_turn":
                 if room.config.turn_counter_enabled:
                     room.turn_count += 1

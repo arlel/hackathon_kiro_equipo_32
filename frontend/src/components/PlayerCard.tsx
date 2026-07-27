@@ -23,22 +23,24 @@ interface PlayerCardProps {
   colorIndex: number
   children?: ReactNode
   onArtChange?: (artUrl: string) => void
+  /** Slot for the poison counter — rendered on the left side */
+  poisonSlot?: ReactNode
 }
 
-export default function PlayerCard({ player, isLocal, colorIndex, children, onArtChange }: PlayerCardProps) {
+export default function PlayerCard({ player, isLocal, colorIndex, children, onArtChange, poisonSlot }: PlayerCardProps) {
   const hasCommanderImage = Boolean(player.commanderImage)
   const bgColorClass = POSITION_COLORS[colorIndex % POSITION_COLORS.length]
   const isEliminated = Boolean(player.eliminationCause)
 
   return (
     <div
-      className={`rounded-xl relative overflow-hidden min-h-[160px] ${
+      className={`rounded-xl relative overflow-hidden min-h-[120px] ${
         isLocal ? 'ring-2 ring-purple-500' : ''
       } ${!hasCommanderImage ? bgColorClass : 'bg-gray-900'} ${
         isEliminated ? 'grayscale opacity-50' : ''
       }`}
     >
-      {/* Commander art background with 60% dark overlay */}
+      {/* Commander art background with dark overlay */}
       {hasCommanderImage && (
         <div className="absolute inset-0">
           <img
@@ -46,32 +48,31 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
             alt=""
             className={`w-full h-full object-cover ${isEliminated ? 'grayscale' : ''}`}
             onError={(e) => {
-              // Hide broken image, fallback to position color
               ;(e.target as HTMLImageElement).style.display = 'none'
             }}
           />
-          <div className={`absolute inset-0 ${isEliminated ? 'bg-black/80' : 'bg-black/60'}`} />
+          <div className={`absolute inset-0 ${isEliminated ? 'bg-black/80' : 'bg-black/55'}`} />
         </div>
       )}
 
       {/* Content layer */}
-      <div className="relative z-10 p-4">
-        {/* Player header */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-semibold text-white truncate drop-shadow-lg">
+      <div className="relative z-10 p-3">
+        {/* Player header — bigger name */}
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-baseline gap-2 min-w-0">
+            <span className="font-bold text-white text-lg truncate drop-shadow-lg">
               {player.username}
             </span>
             {player.commanderName && (
-              <span className="text-xs text-gray-200 truncate drop-shadow-lg">
+              <span className="text-sm text-gray-200 truncate drop-shadow-lg">
                 ({player.commanderName})
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Art picker — only for the local player with a commander */}
-            {isLocal && player.commanderName && onArtChange && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Art picker */}
+            {player.commanderName && onArtChange && (
               <ArtPicker
                 commanderName={player.commanderName}
                 currentArt={player.commanderImage}
@@ -98,8 +99,20 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
           </div>
         )}
 
-        {/* Children: LifeCounter, PoisonCounter, CmdDamagePanel, etc. */}
-        {children}
+        {/* Main content area — poison on left, counters in center */}
+        <div className="flex items-center gap-2">
+          {/* Poison slot (left side) */}
+          {poisonSlot && (
+            <div className="flex-shrink-0">
+              {poisonSlot}
+            </div>
+          )}
+
+          {/* Main children (life counter, cmd damage, etc.) */}
+          <div className="flex-1 min-w-0">
+            {children}
+          </div>
+        </div>
       </div>
     </div>
   )

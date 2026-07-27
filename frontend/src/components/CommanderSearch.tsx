@@ -29,6 +29,21 @@ export default function CommanderSearch({ value, onChange, onSelect, placeholder
   const containerRef = useRef<HTMLDivElement>(null)
   const partnerContainerRef = useRef<HTMLDivElement>(null)
 
+  // Sync internal query with external value prop (e.g., when form is reset)
+  useEffect(() => {
+    if (value !== query) {
+      setQuery(value)
+      if (value === '') {
+        setSelectedCard(null)
+        setShowPartner(false)
+        setSelectedPartner(null)
+        setPartnerQuery('')
+        setResults([])
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
