@@ -132,6 +132,10 @@ async def websocket_endpoint(
             elif action == "restart_game":
                 room_manager.restart_game(room)
 
+            elif action == "toggle_poison":
+                enabled = message.get("enabled", False)
+                room.config.poison_enabled = bool(enabled)
+
             elif action == "increment_turn":
                 if room.config.turn_counter_enabled:
                     room.turn_count += 1

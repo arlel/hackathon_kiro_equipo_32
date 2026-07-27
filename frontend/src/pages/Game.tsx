@@ -187,7 +187,7 @@ interface GameViewProps {
   joinData: JoinData
 }
 
-function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEnabled, joinData }: GameViewProps) {
+function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoisonEnabled, turnCounterEnabled: initialTurnCounterEnabled, joinData }: GameViewProps) {
   const navigate = useNavigate()
 
   // Game state
@@ -198,11 +198,23 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
   const [gameEnded, setGameEnded] = useState<{ winnerId: string | null; winnerName: string | null } | null>(null)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [localArtOverride, setLocalArtOverride] = useState<string | null>(null)
+  // Room config from server (overrides URL params once we get the first state_update)
+  const [poisonEnabled, setPoisonEnabled] = useState(initialPoisonEnabled)
+  const [turnCounterEnabled, setTurnCounterEnabled] = useState(initialTurnCounterEnabled)
+  const [roomFormat, setRoomFormat] = useState(format)
 
   // WebSocket callbacks
   const handleStateUpdate = useCallback((state: StateUpdate) => {
     setPlayers(state.players)
     setTurnCount(state.turnCount)
+    // Update room config from server (authoritative source)
+    if (state.config) {
+      setPoisonEnabled(state.config.poisonEnabled)
+      setTurnCounterEnabled(state.config.turnCounterEnabled)
+    }
+    if (state.format) {
+      setRoomFormat(state.format as typeof format)
+    }
   }, [])
 
   const handleStarterSelected = useCallback((data: StarterSelected) => {
@@ -327,6 +339,21 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
           <span className={`inline-block w-2 h-2 rounded-full ${statusColor}`} title={status}></span>
         </div>
         <div className="flex items-center gap-3 text-sm text-gray-400">
+          {/* Poison toggle */}
+          <button
+            onClick={() => {
+              const newVal = !poisonEnabled
+              setPoisonEnabled(newVal)
+              sendAction({ action: 'toggle_poison', enabled: newVal })
+            }}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
+              poisonEnabled ? 'bg-green-900/50 text-green-400' : 'bg-gray-800 text-gray-500'
+            }`}
+            title={poisonEnabled ? 'Veneno habilitado (click para deshabilitar)' : 'Veneno deshabilitado (click para habilitar)'}
+          >
+            <span>☠️</span>
+            <span className="text-xs">{poisonEnabled ? 'On' : 'Off'}</span>
+          </button>
           {turnCounterEnabled && (
             <button
               onClick={incrementTurn}
@@ -337,7 +364,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
               <span className="font-mono">{turnCount}</span>
             </button>
           )}
-          <span>{players.length} jugadores • {format}</span>
+          <span>{players.length} jugadores • {roomFormat}</span>
         </div>
       </div>
 
@@ -466,7 +493,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled, turnCounterEn
             )}
 
             {/* Commander Damage Toggle */}
-            {format === 'commander' && (
+            {roomFormat === 'commander' && (
               <>
                 <button
                   onClick={() => setShowCmdDamage(showCmdDamage === player.id ? null : player.id)}

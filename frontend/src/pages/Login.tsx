@@ -1,24 +1,29 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setLoading(true)
     
     try {
-      const data = await login(email, password)
-      localStorage.setItem('token', data.access_token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      await login(email, password)
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de conexión')
+      // Only clear password, keep email so user doesn't have to retype it
+      setPassword('')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -54,9 +59,10 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors"
+          disabled={loading}
+          className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 rounded-lg transition-colors"
         >
-          Ingresar
+          {loading ? 'Ingresando...' : 'Ingresar'}
         </button>
 
         <p className="text-center text-sm text-gray-400">
