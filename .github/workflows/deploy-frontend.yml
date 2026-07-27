@@ -9,7 +9,7 @@ on:
 jobs:
   ci:
     name: Run CI checks
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ci-frontend.yml
 
   deploy:
     name: Deploy to Vercel
