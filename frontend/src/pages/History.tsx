@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
 import type { GameRecord, PlayerResult, EliminationCause } from '@/types/game'
 import { editGamePlayer, getHistory } from '@/services/api'
 
@@ -25,6 +26,7 @@ interface EditState {
 
 export default function History() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [games, setGames] = useState<GameRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
@@ -33,13 +35,12 @@ export default function History() {
 
   useEffect(() => {
     const fetchHistory = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          setLoading(false)
-          return
-        }
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
 
+      try {
         const data = await getHistory()
         setGames(data as GameRecord[])
       } catch (err) {
@@ -50,7 +51,7 @@ export default function History() {
     }
 
     fetchHistory()
-  }, [navigate])
+  }, [isAuthenticated])
 
   const handleOpenEdit = (gameId: string) => {
     setEditingGameId(editingGameId === gameId ? null : gameId)

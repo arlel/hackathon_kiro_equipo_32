@@ -73,28 +73,32 @@ export default function LocalGame() {
   // Game state
   const [showCmdDamage, setShowCmdDamage] = useState<string | null>(null)
   const [starterId, setStarterId] = useState<string | null>(null)
+  const [gameStarted, setGameStarted] = useState(false)
   const [gameEnded, setGameEnded] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false)
 
   const handleAdjustLife = useCallback(
     (playerId: string, amount: number) => {
+      if (!gameStarted) setGameStarted(true)
       adjustLife(playerId, amount)
       checkElimination(playerId)
     },
-    [adjustLife, checkElimination]
+    [adjustLife, checkElimination, gameStarted]
   )
 
   const handleAdjustPoison = useCallback(
     (playerId: string, amount: number) => {
+      if (!gameStarted) setGameStarted(true)
       adjustPoison(playerId, amount)
       checkElimination(playerId)
     },
-    [adjustPoison, checkElimination]
+    [adjustPoison, checkElimination, gameStarted]
   )
 
   const handleCmdDamage = useCallback(
     (sourceId: string, targetId: string, amount: number) => {
+      if (!gameStarted) setGameStarted(true)
       applyCommanderDamage(sourceId, targetId, amount)
       checkElimination(targetId)
     },
@@ -524,8 +528,8 @@ export default function LocalGame() {
           </div>
         </div>
 
-        {/* Starter Picker — only show before any eliminations happen */}
-        {!gameEnded && room.eliminationCounter === 0 && (
+        {/* Starter Picker — only show before game starts */}
+        {!gameEnded && !gameStarted && (
           <StarterPicker
             players={room.players.map((p) => ({ id: p.id, username: p.username }))}
             selectedId={starterId}

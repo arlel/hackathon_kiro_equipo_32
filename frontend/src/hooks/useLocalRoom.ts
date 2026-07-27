@@ -92,17 +92,28 @@ export function useLocalRoom() {
   const adjustLife = useCallback((targetId: string, amount: number) => {
     setRoom(prev => {
       if (!prev) return prev
+      const target = prev.players.find(p => p.id === targetId)
+      if (!target) return prev
+
+      const newLife = target.life + amount
+      // Auto-revive if life goes above 0 and player was eliminated by "daño normal"
+      if (newLife > 0 && target.eliminationCause === 'daño normal') {
+        const oldOrder = target.eliminationOrder!
+        return {
+          ...prev,
+          eliminationCounter: prev.eliminationCounter - 1,
+          players: prev.players.map(p => {
+            if (p.id === targetId) return { ...p, life: newLife, eliminationCause: undefined, eliminationOrder: undefined }
+            if (p.eliminationOrder && p.eliminationOrder > oldOrder) return { ...p, eliminationOrder: p.eliminationOrder - 1 }
+            return p
+          }),
+        }
+      }
       return {
         ...prev,
-        players: prev.players.map(p => {
-          if (p.id !== targetId) return p
-          const newLife = p.life + amount
-          // Auto-revive if life goes above 0 and player was eliminated by "daño normal"
-          if (newLife > 0 && p.eliminationCause === 'daño normal') {
-            return { ...p, life: newLife, eliminationCause: undefined, eliminationOrder: undefined }
-          }
-          return { ...p, life: newLife }
-        }),
+        players: prev.players.map(p =>
+          p.id === targetId ? { ...p, life: newLife } : p
+        ),
       }
     })
   }, [])
@@ -110,17 +121,28 @@ export function useLocalRoom() {
   const adjustPoison = useCallback((targetId: string, amount: number) => {
     setRoom(prev => {
       if (!prev) return prev
+      const target = prev.players.find(p => p.id === targetId)
+      if (!target) return prev
+
+      const newPoison = Math.max(0, target.poisonCounters + amount)
+      // Auto-revive if poison drops below 10 and player was eliminated by poison
+      if (newPoison < 10 && target.eliminationCause === 'veneno') {
+        const oldOrder = target.eliminationOrder!
+        return {
+          ...prev,
+          eliminationCounter: prev.eliminationCounter - 1,
+          players: prev.players.map(p => {
+            if (p.id === targetId) return { ...p, poisonCounters: newPoison, eliminationCause: undefined, eliminationOrder: undefined }
+            if (p.eliminationOrder && p.eliminationOrder > oldOrder) return { ...p, eliminationOrder: p.eliminationOrder - 1 }
+            return p
+          }),
+        }
+      }
       return {
         ...prev,
-        players: prev.players.map(p => {
-          if (p.id !== targetId) return p
-          const newPoison = Math.max(0, p.poisonCounters + amount)
-          // Auto-revive if poison drops below 10 and player was eliminated by poison
-          if (newPoison < 10 && p.eliminationCause === 'veneno') {
-            return { ...p, poisonCounters: newPoison, eliminationCause: undefined, eliminationOrder: undefined }
-          }
-          return { ...p, poisonCounters: newPoison }
-        }),
+        players: prev.players.map(p =>
+          p.id === targetId ? { ...p, poisonCounters: newPoison } : p
+        ),
       }
     })
   }, [])
@@ -128,22 +150,34 @@ export function useLocalRoom() {
   const applyCommanderDamage = useCallback((sourceId: string, targetId: string, amount: number) => {
     setRoom(prev => {
       if (!prev) return prev
+      const target = prev.players.find(p => p.id === targetId)
+      if (!target) return prev
+
+      const current = target.commanderDamage[sourceId] || 0
+      const newValue = Math.max(0, current + amount)
+      const actualChange = newValue - current
+      const newDamage = { ...target.commanderDamage, [sourceId]: newValue }
+      const newLife = target.life - actualChange
+
+      // Auto-revive if no source has >= 21 damage and player was eliminated by commander damage
+      const maxDmg = Math.max(...Object.values(newDamage), 0)
+      if (maxDmg < 21 && target.eliminationCause === 'daño de comandante') {
+        const oldOrder = target.eliminationOrder!
+        return {
+          ...prev,
+          eliminationCounter: prev.eliminationCounter - 1,
+          players: prev.players.map(p => {
+            if (p.id === targetId) return { ...p, life: newLife, commanderDamage: newDamage, eliminationCause: undefined, eliminationOrder: undefined }
+            if (p.eliminationOrder && p.eliminationOrder > oldOrder) return { ...p, eliminationOrder: p.eliminationOrder - 1 }
+            return p
+          }),
+        }
+      }
       return {
         ...prev,
-        players: prev.players.map(p => {
-          if (p.id !== targetId) return p
-          const current = p.commanderDamage[sourceId] || 0
-          const newValue = Math.max(0, current + amount)
-          const actualChange = newValue - current
-          const newDamage = { ...p.commanderDamage, [sourceId]: newValue }
-          const newLife = p.life - actualChange
-          // Auto-revive if no source has >= 21 damage and player was eliminated by commander damage
-          const maxDmg = Math.max(...Object.values(newDamage), 0)
-          if (maxDmg < 21 && p.eliminationCause === 'daño de comandante') {
-            return { ...p, life: newLife, commanderDamage: newDamage, eliminationCause: undefined, eliminationOrder: undefined }
-          }
-          return { ...p, life: newLife, commanderDamage: newDamage }
-        }),
+        players: prev.players.map(p =>
+          p.id === targetId ? { ...p, life: newLife, commanderDamage: newDamage } : p
+        ),
       }
     })
   }, [])
