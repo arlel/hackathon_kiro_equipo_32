@@ -104,18 +104,16 @@ async def get_history(
     db: AsyncSession = Depends(get_db),
 ):
     """Get game history for the authenticated user."""
-    user_id = current_user["id"]
+    user_uuid = uuid.UUID(current_user["id"])
 
     # Get games where the user participated as player OR is the creator (local games)
-    from sqlalchemy import or_
-
     result = await db.execute(
-        select(GamePlayer.game_id).where(GamePlayer.user_id == user_id)
+        select(GamePlayer.game_id).where(GamePlayer.user_id == user_uuid)
     )
     player_game_ids = {row[0] for row in result.all()}
 
     result = await db.execute(
-        select(Game.id).where(Game.creator_id == user_id)
+        select(Game.id).where(Game.creator_id == user_uuid)
     )
     creator_game_ids = {row[0] for row in result.all()}
 

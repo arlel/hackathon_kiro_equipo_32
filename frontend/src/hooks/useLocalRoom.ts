@@ -135,11 +135,14 @@ export function useLocalRoom() {
           const current = p.commanderDamage[sourceId] || 0
           const newValue = Math.max(0, current + amount)
           const actualChange = newValue - current
-          return {
-            ...p,
-            life: p.life - actualChange,
-            commanderDamage: { ...p.commanderDamage, [sourceId]: newValue },
+          const newDamage = { ...p.commanderDamage, [sourceId]: newValue }
+          const newLife = p.life - actualChange
+          // Auto-revive if no source has >= 21 damage and player was eliminated by commander damage
+          const maxDmg = Math.max(...Object.values(newDamage), 0)
+          if (maxDmg < 21 && p.eliminationCause === 'daño de comandante') {
+            return { ...p, life: newLife, commanderDamage: newDamage, eliminationCause: undefined, eliminationOrder: undefined }
           }
+          return { ...p, life: newLife, commanderDamage: newDamage }
         }),
       }
     })

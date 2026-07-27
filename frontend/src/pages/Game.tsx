@@ -343,11 +343,12 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
           {turnCounterEnabled && (
             <button
               onClick={incrementTurn}
-              className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 bg-amber-900/60 hover:bg-amber-800/70 border border-amber-600 text-amber-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
               title="Incrementar turno"
             >
               <span>🔄</span>
-              <span className="font-mono">{turnCount}</span>
+              <span className="text-sm">Turno:</span>
+              <span className="font-mono text-base font-bold">{turnCount}</span>
             </button>
           )}
           <span>{players.length}P • {roomFormat}</span>
@@ -446,8 +447,8 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
         </div>
       )}
 
-      {/* Starter Picker */}
-      {!gameEnded && (
+      {/* Starter Picker — only show before any eliminations */}
+      {!gameEnded && !players.some(p => p.eliminationCause) && (
         <StarterPicker
           players={players.map((p) => ({ id: p.id, username: p.username }))}
           selectedId={starterSelectedId}
@@ -470,7 +471,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
             player={displayPlayer}
             isLocal={isLocalPlayer}
             colorIndex={idx}
-            onArtChange={(artUrl) => setLocalArtOverride(artUrl)}
+            onArtChange={isLocalPlayer ? (artUrl) => setLocalArtOverride(artUrl) : undefined}
             poisonSlot={
               poisonEnabled ? (
                 <PoisonCounter

@@ -505,9 +505,11 @@ export default function LocalGame() {
               <button
                 type="button"
                 onClick={incrementTurn}
-                className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded text-gray-300 transition-colors"
+                className="flex items-center gap-1.5 bg-amber-900/60 hover:bg-amber-800/70 border border-amber-600 text-amber-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
               >
-                🔄 Turno: {room.turnCount}
+                <span>🔄</span>
+                <span className="text-sm">Turno:</span>
+                <span className="font-mono text-base font-bold">{room.turnCount}</span>
               </button>
             )}
             <span>{room.players.length}P • {room.config.format}</span>
@@ -522,10 +524,10 @@ export default function LocalGame() {
           </div>
         </div>
 
-        {/* Starter Picker */}
-        {!gameEnded && (
+        {/* Starter Picker — only show before any eliminations happen */}
+        {!gameEnded && room.eliminationCounter === 0 && (
           <StarterPicker
-            players={activePlayers.map((p) => ({ id: p.id, username: p.username }))}
+            players={room.players.map((p) => ({ id: p.id, username: p.username }))}
             selectedId={starterId}
             onSelect={handleSelectStarter}
           />

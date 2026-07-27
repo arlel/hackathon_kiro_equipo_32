@@ -34,7 +34,7 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
 
   return (
     <div
-      className={`rounded-xl relative overflow-hidden min-h-[120px] ${
+      className={`rounded-xl relative min-h-[120px] ${
         isLocal ? 'ring-2 ring-purple-500' : ''
       } ${!hasCommanderImage ? bgColorClass : 'bg-gray-900'} ${
         isEliminated ? 'grayscale opacity-50' : ''
@@ -42,7 +42,7 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
     >
       {/* Commander art background with dark overlay */}
       {hasCommanderImage && (
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 overflow-hidden rounded-xl">
           <img
             src={player.commanderImage}
             alt=""
@@ -100,16 +100,16 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
         )}
 
         {/* Main content area — poison on left, counters in center */}
-        <div className="flex items-center gap-2">
-          {/* Poison slot (left side) */}
+        <div className="flex items-center">
+          {/* Poison slot (left side, absolute so it doesn't push content) */}
           {poisonSlot && (
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 mr-2">
               {poisonSlot}
             </div>
           )}
 
-          {/* Main children (life counter, cmd damage, etc.) */}
-          <div className="flex-1 min-w-0">
+          {/* Main children (life counter, cmd damage, etc.) — always centered */}
+          <div className="flex-1">
             {children}
           </div>
         </div>
