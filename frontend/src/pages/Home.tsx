@@ -17,7 +17,7 @@ function isValidRoomCode(code: string): boolean {
 
 export default function Home() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, logout } = useAuth()
 
   // Room configuration state
   const [format, setFormat] = useState<GameFormat>('commander')
@@ -56,14 +56,13 @@ export default function Home() {
       navigate('/login')
       return
     }
-    const code = generateCode()
     const params = new URLSearchParams({
       format,
       startingLife: String(startingLife),
       poisonEnabled: String(poisonEnabled),
       turnCounterEnabled: String(turnCounterEnabled),
     })
-    navigate(`/local-game/${code}?${params.toString()}`)
+    navigate(`/local-game?${params.toString()}`)
   }
 
   const handleJoinRoom = () => {
@@ -228,12 +227,21 @@ export default function Home() {
           >
             📊 Historial
           </button>
-          <button
-            onClick={() => navigate('/login')}
-            className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors"
-          >
-            👤 Login
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={logout}
+              className="flex-1 bg-gray-800 hover:bg-gray-700 text-red-400 py-2 rounded-lg transition-colors"
+            >
+              🚪 Cerrar Sesión
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/login')}
+              className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors"
+            >
+              👤 Login
+            </button>
+          )}
         </div>
       </div>
     </div>

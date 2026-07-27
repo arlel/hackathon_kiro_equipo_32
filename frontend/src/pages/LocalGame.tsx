@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useLocalRoom } from '@/hooks/useLocalRoom'
 import type { GameFormat, RoomConfig, Player } from '@/types/game'
@@ -23,6 +23,7 @@ const DEFAULT_STARTING_LIFE: Record<GameFormat, number> = {
 
 export default function LocalGame() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { isAuthenticated } = useAuth()
   const {
     room,
@@ -41,11 +42,19 @@ export default function LocalGame() {
 
   const [phase, setPhase] = useState<Phase>('config')
 
-  // Config form state
-  const [format, setFormat] = useState<GameFormat>('commander')
-  const [poisonEnabled, setPoisonEnabled] = useState(false)
-  const [turnEnabled, setTurnEnabled] = useState(false)
-  const [customLife, setCustomLife] = useState(20)
+  // Config form state — initialize from URL params if provided
+  const [format, setFormat] = useState<GameFormat>(
+    (searchParams.get('format') as GameFormat) || 'commander'
+  )
+  const [poisonEnabled, setPoisonEnabled] = useState(
+    searchParams.get('poisonEnabled') === 'true'
+  )
+  const [turnEnabled, setTurnEnabled] = useState(
+    searchParams.get('turnCounterEnabled') === 'true'
+  )
+  const [customLife, setCustomLife] = useState(
+    Number(searchParams.get('startingLife')) || 20
+  )
 
   // Add player form state
   const [newPlayerName, setNewPlayerName] = useState('')
