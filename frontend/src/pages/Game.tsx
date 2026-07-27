@@ -196,6 +196,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
   const [turnCount, setTurnCount] = useState(0)
   const [showCmdDamage, setShowCmdDamage] = useState<string | null>(null)
   const [starterSelectedId, setStarterSelectedId] = useState<string | null>(null)
+  const [gameStarted, setGameStarted] = useState(false)
   const [gameEnded, setGameEnded] = useState<{ winnerId: string | null; winnerName: string | null } | null>(null)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [localArtOverride, setLocalArtOverride] = useState<string | null>(null)
@@ -260,16 +261,19 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
 
   // Actions
   const adjustLife = useCallback((playerId: string, amount: number) => {
+    if (!gameStarted) setGameStarted(true)
     sendAction({ action: 'adjust_life', targetId: playerId, amount })
-  }, [sendAction])
+  }, [sendAction, gameStarted])
 
   const adjustPoison = useCallback((playerId: string, amount: number) => {
+    if (!gameStarted) setGameStarted(true)
     sendAction({ action: 'adjust_poison', targetId: playerId, amount })
-  }, [sendAction])
+  }, [sendAction, gameStarted])
 
   const adjustCommanderDamage = useCallback((commanderSourceId: string, toId: string, amount: number) => {
+    if (!gameStarted) setGameStarted(true)
     sendAction({ action: 'commander_damage', commanderSourceId, toId, amount })
-  }, [sendAction])
+  }, [sendAction, gameStarted])
 
   const incrementTurn = useCallback(() => {
     sendAction({ action: 'increment_turn' })
@@ -447,8 +451,8 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
         </div>
       )}
 
-      {/* Starter Picker — only show before any eliminations */}
-      {!gameEnded && !players.some(p => p.eliminationCause) && (
+      {/* Starter Picker — only show before game starts */}
+      {!gameEnded && !gameStarted && (
         <StarterPicker
           players={players.map((p) => ({ id: p.id, username: p.username }))}
           selectedId={starterSelectedId}

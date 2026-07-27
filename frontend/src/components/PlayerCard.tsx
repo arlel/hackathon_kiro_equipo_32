@@ -100,16 +100,16 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
         )}
 
         {/* Main content area — poison on left, counters in center */}
-        <div className="flex items-center">
-          {/* Poison slot (left side, absolute so it doesn't push content) */}
+        <div className="relative flex items-center">
+          {/* Poison slot (left side, positioned absolutely to not affect layout) */}
           {poisonSlot && (
-            <div className="flex-shrink-0 mr-2">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2">
               {poisonSlot}
             </div>
           )}
 
           {/* Main children (life counter, cmd damage, etc.) — always centered */}
-          <div className="flex-1">
+          <div className="w-full">
             {children}
           </div>
         </div>

@@ -226,24 +226,36 @@ export default function Home() {
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => navigate('/history')}
-            className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors"
+            className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
           >
             📊 Historial
+          </button>
+          <button
+            onClick={() => navigate('/stats')}
+            className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
+          >
+            📈 Estadísticas
+          </button>
+          <button
+            onClick={() => navigate('/decks')}
+            className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
+          >
+            🃏 Mis Mazos
           </button>
           {isAuthenticated ? (
             <button
               onClick={logout}
-              className="flex-1 bg-gray-800 hover:bg-gray-700 text-red-400 py-2 rounded-lg transition-colors"
+              className="bg-gray-800 hover:bg-gray-700 text-red-400 py-2 rounded-lg transition-colors text-sm"
             >
               🚪 Cerrar Sesión
             </button>
           ) : (
             <button
               onClick={() => navigate('/login')}
-              className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors"
+              className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
             >
               👤 Login
             </button>
