@@ -41,7 +41,8 @@ export function useLocalRoom() {
   const [room, setRoom] = useState<LocalRoomState | null>(null)
 
   const createRoom = useCallback((config: RoomConfig) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    // Excluded: O/0 (ambiguous), I/1/L (ambiguous)
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
     let code = ''
     for (let i = 0; i < 6; i++) {
       code += chars[Math.floor(Math.random() * chars.length)]

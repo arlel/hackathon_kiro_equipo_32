@@ -95,13 +95,13 @@ export function getColorDisplay(colors: string[]): string {
 }
 
 /**
- * Fetch all print versions (art variants) of a card by exact name.
- * Returns an array of art_crop URLs from different printings.
+ * Fetch unique art variants of a card by exact name.
+ * Uses unique:art to only get one result per distinct illustration.
  */
 export async function getCardArtVariants(cardName: string): Promise<{ id: string; artCrop: string; setName: string }[]> {
   if (!cardName) return []
 
-  const query = encodeURIComponent(`!"${cardName}" unique:prints`)
+  const query = encodeURIComponent(`!"${cardName}" unique:art`)
   const url = `${SCRYFALL_API}/cards/search?q=${query}&order=released&dir=desc`
 
   try {

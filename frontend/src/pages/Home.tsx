@@ -31,7 +31,8 @@ export default function Home() {
   const startingLife = format === 'commander' ? 40 : format === '20vida' ? 20 : customLife
 
   const generateCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    // Excluded: O/0 (ambiguous), I/1/L (ambiguous)
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
     let code = ''
     for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length))

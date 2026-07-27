@@ -11,6 +11,7 @@ import PoisonCounter from '@/components/PoisonCounter'
 import CmdDamagePanel from '@/components/CmdDamagePanel'
 import StarterPicker from '@/components/StarterPicker'
 import RoomSettings from '@/components/RoomSettings'
+import DisplaySettings, { type DisplayMode } from '@/components/DisplaySettings'
 import type { ScryfallCard } from '@/services/scryfall'
 import { getCardImageUrl } from '@/services/scryfall'
 
@@ -204,6 +205,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
   const [poisonEnabled, setPoisonEnabled] = useState(initialPoisonEnabled)
   const [turnCounterEnabled, setTurnCounterEnabled] = useState(initialTurnCounterEnabled)
   const [roomFormat, setRoomFormat] = useState(format)
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('all')
 
   // WebSocket callbacks
   const handleStateUpdate = useCallback((state: StateUpdate) => {
@@ -356,6 +358,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
             </button>
           )}
           <span>{players.length}P • {roomFormat}</span>
+          <DisplaySettings mode={displayMode} onChange={setDisplayMode} />
           <RoomSettings
             poisonEnabled={poisonEnabled}
             turnCounterEnabled={turnCounterEnabled}
@@ -461,13 +464,45 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
       )}
 
       {/* Players Grid - 1 col < 640px, 2 cols >= 640px */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-        {players.map((player, idx) => {
+      <div className={`grid gap-2 mt-2 ${displayMode === 'self' ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-1 sm:grid-cols-2'}`}>
+        {players
+          .filter((player) => {
+            if (displayMode === 'self') return player.id === joinData.playerId
+            return true
+          })
+          .map((player, idx) => {
           const isLocalPlayer = player.id === joinData.playerId
           // Apply local art override for the local player
           const displayPlayer = isLocalPlayer && localArtOverride
             ? { ...player, commanderImage: localArtOverride }
             : player
+
+          // Compact mode: show simple row for non-local players
+          if (displayMode === 'compact' && !isLocalPlayer) {
+            return (
+              <div
+                key={player.id}
+                className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                  player.eliminationCause ? 'bg-gray-800/50 opacity-50 grayscale' : 'bg-gray-800'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white font-medium">{player.username}</span>
+                  {player.commanderName && (
+                    <span className="text-xs text-gray-400">({player.commanderName})</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {poisonEnabled && player.poisonCounters > 0 && (
+                    <span className="text-xs text-green-400">☠️ {player.poisonCounters}</span>
+                  )}
+                  <span className={`font-bold text-lg tabular-nums ${player.life <= 0 ? 'text-red-400' : 'text-white'}`}>
+                    {player.life}
+                  </span>
+                </div>
+              </div>
+            )
+          }
 
           return (
           <PlayerCard
