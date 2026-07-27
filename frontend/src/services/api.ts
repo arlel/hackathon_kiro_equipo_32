@@ -63,6 +63,35 @@ export async function getGeneralStats() {
   return request<GeneralStats>('/games/stats')
 }
 
+// Save local game
+export async function saveGame(data: {
+  room_code: string
+  format: string
+  starting_life: number
+  poison_enabled: boolean
+  turn_counter_enabled: boolean
+  turn_count: number | null
+  is_local: boolean
+  winner_name: string | null
+  players: {
+    player_name: string
+    commander_name?: string
+    partner_name?: string
+    final_life?: number
+    final_poison?: number
+    commander_damage_received?: Record<string, number>
+    is_winner: boolean
+    elimination_cause?: string
+    elimination_order?: number
+    deck_id?: string
+  }[]
+}) {
+  return request<{ id: string; message: string }>('/games/save', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function getStatsByDeck() {
   return request<DeckStats[]>('/games/stats/by-deck')
 }

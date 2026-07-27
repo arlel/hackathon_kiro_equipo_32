@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useLocalRoom } from '@/hooks/useLocalRoom'
+import { saveGame } from '@/services/api'
 import type { GameFormat, RoomConfig, Player } from '@/types/game'
 import PlayerCard from '@/components/PlayerCard'
 import LifeCounter from '@/components/LifeCounter'
@@ -25,7 +26,7 @@ const DEFAULT_STARTING_LIFE: Record<GameFormat, number> = {
 export default function LocalGame() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const {
     room,
     createRoom,
@@ -39,6 +40,10 @@ export default function LocalGame() {
     checkElimination,
     endGame,
     restartGame,
+    togglePoison,
+    toggleTurnCounter,
+    updatePlayerArt,
+    updatePlayerCommander,
   } = useLocalRoom()
 
   const [phase, setPhase] = useState<Phase>('config')
@@ -206,6 +211,10 @@ export default function LocalGame() {
                 turnCounterEnabled: turnEnabled,
               }
               createRoom(config)
+              // Auto-add the logged-in user as the first player (name only, commander TBD)
+              if (user) {
+                addPlayer(user.username, {})
+              }
               setPhase('players')
             }}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors"
@@ -256,12 +265,17 @@ export default function LocalGame() {
               <h3 className="text-sm font-medium text-gray-400">
                 Jugadores ({room.players.length}/12)
               </h3>
-              {room.players.map((p) => (
+              {room.players.map((p, idx) => {
+                const isHost = idx === 0
+                return (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2"
+                  className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                    isHost ? 'bg-purple-900/30 border border-purple-700' : 'bg-gray-800'
+                  }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
+                    {isHost && <span className="text-xs text-purple-400">👑</span>}
                     <span className="text-white text-sm truncate">{p.username}</span>
                     {p.commanderName && (
                       <span className="text-xs text-gray-400 truncate">
@@ -269,16 +283,51 @@ export default function LocalGame() {
                       </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removePlayer(p.id)}
-                    className="text-red-400 hover:text-red-300 text-sm flex-shrink-0 ml-2"
-                    aria-label={`Eliminar ${p.username}`}
-                  >
-                    ✕
-                  </button>
+                  {/* Only non-host players can be removed */}
+                  {!isHost && (
+                    <button
+                      type="button"
+                      onClick={() => removePlayer(p.id)}
+                      className="text-red-400 hover:text-red-300 text-sm flex-shrink-0 ml-2"
+                      aria-label={`Eliminar ${p.username}`}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
-              ))}
+                )
+              })}
+
+              {/* Commander search for host if in commander format and no commander yet */}
+              {room.config.format === 'commander' && room.players[0] && !room.players[0].commanderName && (
+                <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-3">
+                  <p className="text-xs text-purple-300 mb-2">Elegí tu Commander:</p>
+                  <CommanderSearch
+                    value={newCommanderName}
+                    onChange={(name, card?: ScryfallCard) => {
+                      setNewCommanderName(name)
+                      if (card) {
+                        const artUrl = getCardImageUrl(card, 'art_crop')
+                        setNewCommanderImage(artUrl || '')
+                      }
+                    }}
+                    onSelect={(commander, partner) => {
+                      // Update the host player's commander
+                      if (room.players[0]) {
+                        updatePlayerCommander(room.players[0].id, {
+                          commanderName: commander.name,
+                          commanderImage: commander.image,
+                          partnerName: partner?.name,
+                          partnerImage: partner?.image,
+                        })
+                      }
+                      setNewCommanderName('')
+                      setNewCommanderImage('')
+                    }}
+                    placeholder="Buscar tu Commander..."
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -372,11 +421,41 @@ export default function LocalGame() {
       setStarterId(id)
     }
 
-    const handleEndGame = () => {
+    const handleEndGame = async () => {
       // Pick the last active player as winner, or null
       const winner = activePlayers.length === 1 ? activePlayers[0].id : null
-      endGame(winner)
+      const result = endGame(winner)
       setGameEnded(true)
+
+      // Persist to backend
+      if (result) {
+        try {
+          await saveGame({
+            room_code: result.roomCode,
+            format: result.format,
+            starting_life: result.startingLife,
+            poison_enabled: result.poisonEnabled,
+            turn_counter_enabled: result.turnCounterEnabled,
+            turn_count: result.turnCount,
+            is_local: true,
+            winner_name: result.players.find(p => p.isWinner)?.username || null,
+            players: result.players.map(p => ({
+              player_name: p.username,
+              commander_name: p.commanderName,
+              partner_name: p.partnerName,
+              final_life: p.finalLife,
+              final_poison: p.finalPoison,
+              commander_damage_received: p.commanderDamage,
+              is_winner: p.isWinner,
+              elimination_cause: p.eliminationCause,
+              elimination_order: p.eliminationOrder,
+              deck_id: p.deckId,
+            })),
+          })
+        } catch (err) {
+          console.error('Error saving local game:', err)
+        }
+      }
     }
 
     const handleRestart = () => {
@@ -435,15 +514,8 @@ export default function LocalGame() {
             <RoomSettings
               poisonEnabled={room.config.poisonEnabled}
               turnCounterEnabled={room.config.turnCounterEnabled}
-              onTogglePoison={(enabled) => {
-                room.config.poisonEnabled = enabled
-                // Force re-render by triggering a state update
-                setShowCmdDamage(showCmdDamage)
-              }}
-              onToggleTurnCounter={(enabled) => {
-                room.config.turnCounterEnabled = enabled
-                setShowCmdDamage(showCmdDamage)
-              }}
+              onTogglePoison={togglePoison}
+              onToggleTurnCounter={toggleTurnCounter}
               showAddPlayer={!gameEnded}
               onAddPlayer={() => setShowAddPlayerModal(true)}
             />
@@ -534,12 +606,7 @@ export default function LocalGame() {
               player={player}
               isLocal={idx === 0}
               colorIndex={idx}
-              onArtChange={(artUrl) => {
-                // Update player's commander image locally
-                const updated = { ...player, commanderImage: artUrl }
-                room.players[idx] = updated as typeof player
-                setShowCmdDamage(showCmdDamage) // force re-render
-              }}
+              onArtChange={(artUrl) => updatePlayerArt(player.id, artUrl)}
               poisonSlot={
                 !gameEnded && room.config.poisonEnabled ? (
                   <PoisonCounter

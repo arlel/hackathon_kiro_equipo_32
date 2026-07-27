@@ -5,7 +5,6 @@ interface RoomSettingsProps {
   turnCounterEnabled: boolean
   onTogglePoison: (enabled: boolean) => void
   onToggleTurnCounter: (enabled: boolean) => void
-  /** Only shown in local rooms — allows adding players mid-game */
   onAddPlayer?: () => void
   showAddPlayer?: boolean
 }
@@ -26,7 +25,7 @@ export default function RoomSettings({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`p-1.5 rounded-lg transition-colors ${
+        className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
           isOpen ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
         }`}
         title="Configuración de sala"
@@ -43,44 +42,42 @@ export default function RoomSettings({
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Configuración</p>
 
           {/* Poison toggle */}
-          <label className="flex items-center justify-between cursor-pointer">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => onTogglePoison(!poisonEnabled)}
+          >
             <span className="text-sm text-gray-200">☠️ Veneno</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={poisonEnabled}
-              onClick={() => onTogglePoison(!poisonEnabled)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                poisonEnabled ? 'bg-green-600' : 'bg-gray-700'
+            <div
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                poisonEnabled ? 'bg-green-600' : 'bg-gray-600'
               }`}
             >
               <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                  poisonEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                  poisonEnabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
-            </button>
-          </label>
+            </div>
+          </div>
 
           {/* Turn counter toggle */}
-          <label className="flex items-center justify-between cursor-pointer">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => onToggleTurnCounter(!turnCounterEnabled)}
+          >
             <span className="text-sm text-gray-200">🔄 Turnos</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={turnCounterEnabled}
-              onClick={() => onToggleTurnCounter(!turnCounterEnabled)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                turnCounterEnabled ? 'bg-green-600' : 'bg-gray-700'
+            <div
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                turnCounterEnabled ? 'bg-green-600' : 'bg-gray-600'
               }`}
             >
               <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                  turnCounterEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                  turnCounterEnabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
-            </button>
-          </label>
+            </div>
+          </div>
 
           {/* Add player button (local rooms only) */}
           {showAddPlayer && onAddPlayer && (
@@ -92,7 +89,7 @@ export default function RoomSettings({
                   onAddPlayer()
                   setIsOpen(false)
                 }}
-                className="w-full text-left text-sm text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2"
+                className="w-full text-left text-sm text-purple-400 hover:text-purple-300 cursor-pointer transition-colors flex items-center gap-2"
               >
                 <span>➕</span>
                 <span>Agregar jugador</span>

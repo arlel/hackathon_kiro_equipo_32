@@ -4,38 +4,57 @@ interface UseLongPressOptions {
   onShortPress: () => void
   onLongPress: () => void
   threshold?: number
+  /** Interval in ms to repeat onLongPress while held. 0 = no repeat. */
+  repeatInterval?: number
 }
 
-export function useLongPress({ onShortPress, onLongPress, threshold = 500 }: UseLongPressOptions) {
+export function useLongPress({
+  onShortPress,
+  onLongPress,
+  threshold = 500,
+  repeatInterval = 200,
+}: UseLongPressOptions) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isLongPressRef = useRef(false)
+
+  const cleanup = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }, [])
 
   const onPointerDown = useCallback(() => {
     isLongPressRef.current = false
     timerRef.current = setTimeout(() => {
       isLongPressRef.current = true
       onLongPress()
+      // Start repeating if repeatInterval is set
+      if (repeatInterval > 0) {
+        intervalRef.current = setInterval(() => {
+          onLongPress()
+        }, repeatInterval)
+      }
     }, threshold)
-  }, [onLongPress, threshold])
+  }, [onLongPress, threshold, repeatInterval])
 
   const onPointerUp = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
+    cleanup()
     if (!isLongPressRef.current) {
       onShortPress()
     }
     isLongPressRef.current = false
-  }, [onShortPress])
+  }, [onShortPress, cleanup])
 
   const onPointerLeave = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
+    cleanup()
     isLongPressRef.current = false
-  }, [])
+  }, [cleanup])
 
   return { onPointerDown, onPointerUp, onPointerLeave }
 }

@@ -94,9 +94,15 @@ export function useLocalRoom() {
       if (!prev) return prev
       return {
         ...prev,
-        players: prev.players.map(p =>
-          p.id === targetId ? { ...p, life: p.life + amount } : p
-        ),
+        players: prev.players.map(p => {
+          if (p.id !== targetId) return p
+          const newLife = p.life + amount
+          // Auto-revive if life goes above 0 and player was eliminated by "daño normal"
+          if (newLife > 0 && p.eliminationCause === 'daño normal') {
+            return { ...p, life: newLife, eliminationCause: undefined, eliminationOrder: undefined }
+          }
+          return { ...p, life: newLife }
+        }),
       }
     })
   }, [])
@@ -106,11 +112,15 @@ export function useLocalRoom() {
       if (!prev) return prev
       return {
         ...prev,
-        players: prev.players.map(p =>
-          p.id === targetId
-            ? { ...p, poisonCounters: Math.max(0, p.poisonCounters + amount) }
-            : p
-        ),
+        players: prev.players.map(p => {
+          if (p.id !== targetId) return p
+          const newPoison = Math.max(0, p.poisonCounters + amount)
+          // Auto-revive if poison drops below 10 and player was eliminated by poison
+          if (newPoison < 10 && p.eliminationCause === 'veneno') {
+            return { ...p, poisonCounters: newPoison, eliminationCause: undefined, eliminationOrder: undefined }
+          }
+          return { ...p, poisonCounters: newPoison }
+        }),
       }
     })
   }, [])
@@ -240,6 +250,49 @@ export function useLocalRoom() {
     })
   }, [])
 
+  const togglePoison = useCallback((enabled: boolean) => {
+    setRoom(prev => {
+      if (!prev) return prev
+      return { ...prev, config: { ...prev.config, poisonEnabled: enabled } }
+    })
+  }, [])
+
+  const toggleTurnCounter = useCallback((enabled: boolean) => {
+    setRoom(prev => {
+      if (!prev) return prev
+      return { ...prev, config: { ...prev.config, turnCounterEnabled: enabled } }
+    })
+  }, [])
+
+  const updatePlayerArt = useCallback((playerId: string, artUrl: string) => {
+    setRoom(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        players: prev.players.map(p =>
+          p.id === playerId ? { ...p, commanderImage: artUrl } : p
+        ),
+      }
+    })
+  }, [])
+
+  const updatePlayerCommander = useCallback((playerId: string, data: {
+    commanderName?: string
+    commanderImage?: string
+    partnerName?: string
+    partnerImage?: string
+  }) => {
+    setRoom(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        players: prev.players.map(p =>
+          p.id === playerId ? { ...p, ...data } : p
+        ),
+      }
+    })
+  }, [])
+
   return {
     room,
     createRoom,
@@ -254,5 +307,9 @@ export function useLocalRoom() {
     revivePlayer,
     endGame,
     restartGame,
+    togglePoison,
+    toggleTurnCounter,
+    updatePlayerArt,
+    updatePlayerCommander,
   }
 }

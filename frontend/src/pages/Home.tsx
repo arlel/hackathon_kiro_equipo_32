@@ -53,7 +53,13 @@ export default function Home() {
 
   const handleCreateLocalRoom = () => {
     if (!isAuthenticated) {
-      navigate('/login')
+      const localRoomParams = new URLSearchParams({
+        format,
+        startingLife: String(startingLife),
+        poisonEnabled: String(poisonEnabled),
+        turnCounterEnabled: String(turnCounterEnabled),
+      })
+      navigate(`/login?redirect=${encodeURIComponent(`/local-game?${localRoomParams.toString()}`)}`)
       return
     }
     const params = new URLSearchParams({
