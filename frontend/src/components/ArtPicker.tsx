@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getCardArtVariants } from '@/services/scryfall'
+import { useTranslation } from '@/i18n/I18nContext'
 
 interface ArtPickerProps {
   commanderName: string
@@ -12,6 +13,7 @@ export default function ArtPicker({ commanderName, currentArt, onSelect }: ArtPi
   const [variants, setVariants] = useState<{ id: string; artCrop: string; setName: string }[]>([])
   const [loading, setLoading] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -46,8 +48,8 @@ export default function ArtPicker({ commanderName, currentArt, onSelect }: ArtPi
         type="button"
         onClick={handleOpen}
         className="p-1.5 rounded-md bg-black/40 hover:bg-black/60 text-gray-300 hover:text-white transition-colors"
-        title="Cambiar arte"
-        aria-label="Cambiar arte del comandante"
+        title={t('artPicker.changeArt')}
+        aria-label={t('artPicker.changeArtAria')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
           <path d="M15.993 1.385a1.87 1.87 0 012.622 2.622l-4.522 4.522a1 1 0 01-.414.263l-2.792.93a.5.5 0 01-.632-.632l.93-2.792a1 1 0 01.263-.414l4.545-4.499zM3.5 7A1.5 1.5 0 002 8.5v8A1.5 1.5 0 003.5 18h8a1.5 1.5 0 001.5-1.5v-3a.5.5 0 011 0v3A2.5 2.5 0 0111.5 19h-8A2.5 2.5 0 011 16.5v-8A2.5 2.5 0 013.5 6h3a.5.5 0 010 1h-3z" />
@@ -57,14 +59,14 @@ export default function ArtPicker({ commanderName, currentArt, onSelect }: ArtPi
       {/* Art variants dropdown */}
       {isOpen && (
         <div className="absolute z-50 right-0 mt-2 w-64 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-2 max-h-72 overflow-y-auto">
-          <p className="text-xs text-gray-400 mb-2 px-1">Artes disponibles</p>
+          <p className="text-xs text-gray-400 mb-2 px-1">{t('artPicker.available')}</p>
 
           {loading && (
-            <p className="text-xs text-gray-500 text-center py-4">Cargando artes...</p>
+            <p className="text-xs text-gray-500 text-center py-4">{t('artPicker.loading')}</p>
           )}
 
           {!loading && variants.length === 0 && (
-            <p className="text-xs text-gray-500 text-center py-4">No se encontraron variantes</p>
+            <p className="text-xs text-gray-500 text-center py-4">{t('artPicker.noVariants')}</p>
           )}
 
           {!loading && variants.length > 0 && (

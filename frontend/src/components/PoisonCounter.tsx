@@ -1,4 +1,5 @@
 import { useLongPress } from '@/hooks/useLongPress'
+import { useTranslation } from '@/i18n/I18nContext'
 
 interface PoisonCounterProps {
   poison: number
@@ -6,6 +7,7 @@ interface PoisonCounterProps {
 }
 
 export default function PoisonCounter({ poison, onAdjust }: PoisonCounterProps) {
+  const { t } = useTranslation()
   const isLethal = poison >= 10
 
   // Tap = +1, Long press = -1
@@ -40,8 +42,8 @@ export default function PoisonCounter({ poison, onAdjust }: PoisonCounterProps) 
               ? 'border-green-600 bg-green-950/60'
               : 'border-gray-600 bg-gray-800/60 hover:border-green-600'
         }`}
-        aria-label={`Veneno: ${poison}. Tocar para +1, mantener para -1`}
-        title={`Veneno: ${poison}`}
+        aria-label={t('poisonCounter.aria', { count: poison })}
+        title={t('poisonCounter.title', { count: poison })}
         {...handlers}
       >
         {/* Phyrexian/poison symbol */}

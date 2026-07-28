@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Player } from '@/types/game'
 import ArtPicker from '@/components/ArtPicker'
+import { useTranslation } from '@/i18n/I18nContext'
 
 const POSITION_COLORS = [
   'bg-purple-900',
@@ -28,6 +29,7 @@ interface PlayerCardProps {
 }
 
 export default function PlayerCard({ player, isLocal, colorIndex, children, onArtChange, poisonSlot }: PlayerCardProps) {
+  const { t } = useTranslation()
   const hasCommanderImage = Boolean(player.commanderImage)
   const bgColorClass = POSITION_COLORS[colorIndex % POSITION_COLORS.length]
   const isEliminated = Boolean(player.eliminationCause)
@@ -82,7 +84,7 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
             {/* Disconnected indicator */}
             {!player.isConnected && (
               <span className="text-xs text-red-400 bg-black/50 px-2 py-0.5 rounded font-medium">
-                desconectado
+                {t('playerCard.disconnected')}
               </span>
             )}
           </div>
@@ -93,7 +95,7 @@ export default function PlayerCard({ player, isLocal, colorIndex, children, onAr
           <div className="mb-2 flex items-center gap-1 bg-red-900/60 backdrop-blur-sm rounded px-2 py-1">
             <span className="text-sm">💀</span>
             <span className="text-xs text-red-200 font-medium">
-              Eliminado — {player.eliminationCause}
+              {t('playerCard.eliminated', { cause: t(`causePlain.${player.eliminationCause}`) })}
               {player.eliminationOrder != null && ` (#${player.eliminationOrder})`}
             </span>
           </div>

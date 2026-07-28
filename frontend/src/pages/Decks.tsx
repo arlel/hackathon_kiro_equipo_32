@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useTranslation } from '@/i18n/I18nContext'
 import { listDecks, createDeck, updateDeck, deleteDeck } from '@/services/api'
 import CommanderSearch from '@/components/CommanderSearch'
 import type { DeckRecord, GameFormat } from '@/types/game'
@@ -17,6 +18,7 @@ interface DeckFormData {
 export default function Decks() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const { t } = useTranslation()
   const [decks, setDecks] = useState<DeckRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -48,7 +50,7 @@ export default function Decks() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     if (!formData.name.trim()) {
-      setError('El nombre del mazo es obligatorio')
+      setError(t('decks.nameRequired'))
       return
     }
     setError(null)
@@ -66,7 +68,7 @@ export default function Decks() {
       setShowForm(false)
       await fetchDecks()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear mazo')
+      setError(err instanceof Error ? err.message : t('decks.createError'))
     } finally {
       setCreating(false)
     }
@@ -116,7 +118,7 @@ export default function Decks() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Cargando mazos...</p>
+        <p className="text-gray-400">{t('decks.loading')}</p>
       </div>
     )
   }
@@ -125,12 +127,12 @@ export default function Decks() {
     <div className="min-h-screen p-4 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">🃏 Mis Mazos</h1>
+        <h1 className="text-2xl font-bold">{t('decks.title')}</h1>
         <button
           onClick={() => navigate('/')}
           className="text-sm text-gray-400 hover:text-white"
         >
-          ← Volver
+          ← {t('common.back')}
         </button>
       </div>
 
@@ -140,14 +142,14 @@ export default function Decks() {
           onClick={() => setShowForm(true)}
           className="w-full mb-6 py-3 border-2 border-dashed border-gray-700 rounded-xl text-gray-400 hover:border-purple-500 hover:text-purple-400 transition-colors"
         >
-          [+] Agregar Mazo
+          {t('decks.addDeck')}
         </button>
       )}
 
       {/* Creation form */}
       {showForm && (
         <form onSubmit={handleCreate} className="mb-6 bg-gray-900 rounded-xl p-4 space-y-4 border border-gray-800">
-          <h2 className="text-lg font-semibold text-white">Nuevo Mazo</h2>
+          <h2 className="text-lg font-semibold text-white">{t('decks.newDeck')}</h2>
 
           {error && (
             <p className="text-sm text-red-400 bg-red-900/20 px-3 py-2 rounded">{error}</p>
@@ -156,14 +158,14 @@ export default function Decks() {
           {/* Deck name */}
           <div>
             <label htmlFor="deck-name" className="block text-sm text-gray-400 mb-1">
-              Nombre del mazo
+              {t('decks.nameLabel')}
             </label>
             <input
               id="deck-name"
               type="text"
               value={formData.name}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Ej: Atraxa Infect"
+              placeholder={t('decks.namePlaceholder')}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500"
             />
           </div>
@@ -171,7 +173,7 @@ export default function Decks() {
           {/* Format selector */}
           <div>
             <label htmlFor="deck-format" className="block text-sm text-gray-400 mb-1">
-              Formato
+              {t('decks.formatLabel')}
             </label>
             <select
               id="deck-format"
@@ -189,21 +191,21 @@ export default function Decks() {
               }}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
             >
-              <option value="commander">Commander</option>
-              <option value="20vida">20 Vida</option>
-              <option value="custom">Custom</option>
+              <option value="commander">{t('format.commander')}</option>
+              <option value="20vida">{t('format.20vida')}</option>
+              <option value="custom">{t('format.custom')}</option>
             </select>
           </div>
 
           {/* Commander search (only for commander format) */}
           {formData.format === 'commander' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Comandante</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('decks.commanderLabel')}</label>
               <CommanderSearch
                 value={formData.commanderName || ''}
                 onChange={(name) => setFormData((prev) => ({ ...prev, commanderName: name }))}
                 onSelect={handleCommanderSelect}
-                placeholder="Buscar comandante..."
+                placeholder={t('decks.searchCommander')}
               />
             </div>
           )}
@@ -215,14 +217,14 @@ export default function Decks() {
               disabled={creating}
               className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium py-2 rounded-lg transition-colors"
             >
-              {creating ? 'Creando...' : 'Crear Mazo'}
+              {creating ? t('decks.creating') : t('decks.createDeck')}
             </button>
             <button
               type="button"
               onClick={resetForm}
               className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -230,7 +232,7 @@ export default function Decks() {
 
       {/* Deck list */}
       {decks.length === 0 ? (
-        <p className="text-gray-400 text-center mt-12">No tenés mazos registrados aún.</p>
+        <p className="text-gray-400 text-center mt-12">{t('decks.empty')}</p>
       ) : (
         <div className="space-y-3">
           {decks.map((deck) => (
@@ -252,7 +254,7 @@ export default function Decks() {
                           : 'bg-gray-800 text-gray-500'
                       }`}
                     >
-                      {deck.status === 'active' ? 'Activo' : 'Inactivo'}
+                      {deck.status === 'active' ? t('decks.active') : t('decks.inactive')}
                     </span>
                   </div>
 
@@ -264,9 +266,9 @@ export default function Decks() {
                   )}
 
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    <span className="uppercase tracking-wide">{deck.format}</span>
-                    <span>{deck.totalGames} partidas</span>
-                    <span>{deck.winRate}% victorias</span>
+                    <span className="uppercase tracking-wide">{t(`format.${deck.format}`)}</span>
+                    <span>{t('decks.gamesSuffix', { count: deck.totalGames })}</span>
+                    <span>{t('decks.winsSuffix', { rate: deck.winRate })}</span>
                   </div>
                 </div>
 
@@ -276,8 +278,8 @@ export default function Decks() {
                   <button
                     onClick={() => handleToggleStatus(deck)}
                     className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-                    title={deck.status === 'active' ? 'Desactivar' : 'Activar'}
-                    aria-label={deck.status === 'active' ? 'Desactivar mazo' : 'Activar mazo'}
+                    title={deck.status === 'active' ? t('decks.deactivate') : t('decks.activate')}
+                    aria-label={deck.status === 'active' ? t('decks.deactivateDeck') : t('decks.activateDeck')}
                   >
                     {deck.status === 'active' ? (
                       <span className="text-green-400">⏸</span>
@@ -293,7 +295,7 @@ export default function Decks() {
                         onClick={() => handleDelete(deck.id)}
                         className="text-xs px-2 py-1 bg-red-900/50 text-red-400 rounded hover:bg-red-900 transition-colors"
                       >
-                        Confirmar
+                        {t('decks.confirm')}
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(null)}
@@ -306,8 +308,8 @@ export default function Decks() {
                     <button
                       onClick={() => setDeleteConfirm(deck.id)}
                       className="p-2 rounded-lg hover:bg-gray-800 text-gray-500 hover:text-red-400 transition-colors"
-                      title="Eliminar mazo"
-                      aria-label="Eliminar mazo"
+                      title={t('decks.deleteDeck')}
+                      aria-label={t('decks.deleteDeck')}
                     >
                       🗑️
                     </button>

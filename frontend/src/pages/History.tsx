@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useTranslation } from '@/i18n/I18nContext'
 import type { GameRecord, PlayerResult, EliminationCause } from '@/types/game'
 import { editGamePlayer, getHistory } from '@/services/api'
 
-function getEliminationLabel(cause: EliminationCause | undefined): string | null {
+// Maps a stored (Spanish) cause value to its translation key, or null.
+function getEliminationLabelKey(cause: EliminationCause | undefined): string | null {
   switch (cause) {
     case 'daño normal':
-      return '💀 daño normal'
+      return 'eliminationCause.normal'
     case 'daño de comandante':
-      return '⚔️ daño de comandante'
+      return 'eliminationCause.commander'
     case 'veneno':
-      return '☠️ veneno'
+      return 'eliminationCause.poison'
     default:
       return null
   }
@@ -27,6 +29,8 @@ interface EditState {
 export default function History() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const { t, lang } = useTranslation()
+  const dateLocale = lang === 'es' ? 'es-AR' : 'en-US'
   const [games, setGames] = useState<GameRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
@@ -104,7 +108,7 @@ export default function History() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Cargando historial...</p>
+        <p className="text-gray-400">{t('history.loading')}</p>
       </div>
     )
   }
@@ -112,17 +116,17 @@ export default function History() {
   return (
     <div className="min-h-screen p-4 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">📊 Historial de Partidas</h1>
+        <h1 className="text-2xl font-bold">{t('history.title')}</h1>
         <button
           onClick={() => navigate('/')}
           className="text-sm text-gray-400 hover:text-white"
         >
-          ← Volver
+          ← {t('common.back')}
         </button>
       </div>
 
       {games.length === 0 ? (
-        <p className="text-gray-400 text-center mt-12">No hay partidas registradas aún.</p>
+        <p className="text-gray-400 text-center mt-12">{t('history.empty')}</p>
       ) : (
         <div className="space-y-3">
           {games.map((game) => (
@@ -130,7 +134,7 @@ export default function History() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-purple-400 font-mono">{game.format}</span>
                 <span className="text-xs text-gray-500">
-                  {new Date(game.endedAt).toLocaleDateString('es-AR')}
+                  {new Date(game.endedAt).toLocaleDateString(dateLocale)}
                 </span>
               </div>
 
@@ -158,15 +162,15 @@ export default function History() {
                       </span>
                     )}
 
-                    {p.eliminationCause && (
+                    {p.eliminationCause && getEliminationLabelKey(p.eliminationCause) && (
                       <span className="text-xs text-red-400">
-                        {getEliminationLabel(p.eliminationCause)}
+                        {t(getEliminationLabelKey(p.eliminationCause)!)}
                       </span>
                     )}
 
                     {p.finalPoison > 0 && (
                       <span className="text-xs text-emerald-400">
-                        🧪 {p.finalPoison} veneno
+                        🧪 {t('history.poison', { count: p.finalPoison })}
                       </span>
                     )}
                   </div>
@@ -174,19 +178,19 @@ export default function History() {
               </div>
 
               <div className="flex items-center justify-between mt-2">
-                <p className="text-xs text-gray-500">{game.turnCount} turnos</p>
+                <p className="text-xs text-gray-500">{t('history.turns', { count: game.turnCount })}</p>
                 <button
                   onClick={() => handleOpenEdit(game.id)}
                   className="text-xs px-2 py-1 rounded bg-purple-900/50 text-purple-300 hover:bg-purple-800/60 transition-colors"
                 >
-                  {editingGameId === game.id ? 'Cerrar' : 'Editar'}
+                  {editingGameId === game.id ? t('history.close') : t('history.edit')}
                 </button>
               </div>
 
               {/* Inline edit panel */}
               {editingGameId === game.id && (
                 <div className="mt-3 border-t border-gray-700 pt-3 space-y-3">
-                  <p className="text-xs text-gray-400 mb-2">Selecciona un jugador para editar:</p>
+                  <p className="text-xs text-gray-400 mb-2">{t('history.selectPlayer')}</p>
                   <div className="flex flex-wrap gap-1">
                     {game.players.map((p) => (
                       <button
@@ -206,13 +210,13 @@ export default function History() {
                   {editState && editState.gameId === game.id && (
                     <div className="space-y-2 bg-gray-800/50 rounded-lg p-3">
                       <p className="text-sm text-gray-200 font-medium">
-                        Editando: {editState.playerName}
+                        {t('history.editing', { name: editState.playerName })}
                       </p>
 
                       {/* Elimination cause dropdown */}
                       <div>
                         <label className="text-xs text-gray-400 block mb-1">
-                          Causa de eliminación
+                          {t('history.eliminationCauseLabel')}
                         </label>
                         <select
                           value={editState.eliminationCause ?? ''}
@@ -224,17 +228,17 @@ export default function History() {
                           }
                           className="w-full text-sm bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-gray-200 focus:outline-none focus:border-purple-500"
                         >
-                          <option value="">Sin causa</option>
-                          <option value="daño normal">💀 daño normal</option>
-                          <option value="daño de comandante">⚔️ daño de comandante</option>
-                          <option value="veneno">☠️ veneno</option>
+                          <option value="">{t('history.noCause')}</option>
+                          <option value="daño normal">{t('eliminationCause.normal')}</option>
+                          <option value="daño de comandante">{t('eliminationCause.commander')}</option>
+                          <option value="veneno">{t('eliminationCause.poison')}</option>
                         </select>
                       </div>
 
                       {/* Elimination order number input */}
                       <div>
                         <label className="text-xs text-gray-400 block mb-1">
-                          Orden de eliminación
+                          {t('history.eliminationOrderLabel')}
                         </label>
                         <input
                           type="number"
@@ -246,7 +250,7 @@ export default function History() {
                               eliminationOrder: e.target.value ? parseInt(e.target.value, 10) : null,
                             })
                           }
-                          placeholder="Ej: 1, 2, 3..."
+                          placeholder={t('history.orderPlaceholder')}
                           className="w-full text-sm bg-gray-900 border border-gray-600 rounded px-2 py-1.5 text-gray-200 placeholder-gray-500 focus:outline-none focus:border-purple-500"
                         />
                       </div>
@@ -257,7 +261,7 @@ export default function History() {
                         disabled={saving}
                         className="w-full text-sm px-3 py-1.5 rounded bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        {saving ? 'Guardando...' : 'Guardar cambios'}
+                        {saving ? t('history.saving') : t('history.saveChanges')}
                       </button>
                     </div>
                   )}

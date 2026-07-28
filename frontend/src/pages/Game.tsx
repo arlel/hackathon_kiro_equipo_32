@@ -14,6 +14,7 @@ import RoomSettings from '@/components/RoomSettings'
 import DisplaySettings, { type DisplayMode } from '@/components/DisplaySettings'
 import type { ScryfallCard } from '@/services/scryfall'
 import { getCardImageUrl } from '@/services/scryfall'
+import { useTranslation } from '@/i18n/I18nContext'
 
 // ═══════════════════════════════════════════════════════
 // Join form data passed to GameView after joining
@@ -32,6 +33,7 @@ export default function Game() {
   const { roomCode } = useParams<{ roomCode: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Room config from URL params
   const format = (searchParams.get('format') as GameFormat) || 'commander'
@@ -119,26 +121,26 @@ export default function Game() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">
-            Unirse a sala: <span className="text-purple-400 font-mono">{roomCode}</span>
+            {t('game.joinRoomTitle')} <span className="text-purple-400 font-mono">{roomCode}</span>
           </h2>
           <button
             onClick={() => navigate('/')}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
-            ← Volver
+            ← {t('common.back')}
           </button>
         </div>
 
         <p className="text-sm text-gray-400">
-          Formato: {format} • {startingLife} vida
-          {poisonEnabled && ' • Veneno'}
-          {turnCounterEnabled && ' • Turnos'}
+          {t('game.roomInfo', { format: t(`format.${format}`), life: startingLife })}
+          {poisonEnabled && t('game.poisonTag')}
+          {turnCounterEnabled && t('game.turnsTag')}
         </p>
 
         {/* Player Name */}
         <input
           type="text"
-          placeholder="Tu nombre"
+          placeholder={t('game.namePlaceholder')}
           value={myName}
           onChange={(e) => setMyName(e.target.value.slice(0, 30))}
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -156,7 +158,7 @@ export default function Game() {
               }
             }}
             onSelect={handleCommanderSelect}
-            placeholder="Buscar tu Commander..."
+            placeholder={t('game.searchCommander')}
           />
         )}
 
@@ -169,7 +171,7 @@ export default function Game() {
           disabled={!myName.trim()}
           className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 rounded-lg transition-colors"
         >
-          {isCreator ? 'Crear y Unirse' : 'Unirse'}
+          {isCreator ? t('game.createAndJoin') : t('game.join')}
         </button>
       </div>
     </div>
@@ -191,6 +193,7 @@ interface GameViewProps {
 
 function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoisonEnabled, turnCounterEnabled: initialTurnCounterEnabled, joinData }: GameViewProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Game state
   const [players, setPlayers] = useState<Player[]>([])
@@ -345,7 +348,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
       <div className="flex items-center justify-between mb-3 px-2">
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span>
-            Sala: <span className="text-purple-400 font-mono font-bold">{roomCode}</span>
+            {t('game.room')} <span className="text-purple-400 font-mono font-bold">{roomCode}</span>
           </span>
           <span className={`inline-block w-2 h-2 rounded-full ${statusColor}`} title={status}></span>
         </div>
@@ -354,14 +357,14 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
             <button
               onClick={incrementTurn}
               className="flex items-center gap-1.5 bg-amber-900/60 hover:bg-amber-800/70 border border-amber-600 text-amber-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
-              title="Incrementar turno"
+              title={t('game.incrementTurn')}
             >
               <span>🔄</span>
-              <span className="text-sm">Turno:</span>
+              <span className="text-sm">{t('game.turn')}</span>
               <span className="font-mono text-base font-bold">{turnCount}</span>
             </button>
           )}
-          <span>{players.length}P • {roomFormat}</span>
+          <span>{players.length}P • {t(`format.${roomFormat}`)}</span>
           <DisplaySettings mode={displayMode} onChange={setDisplayMode} />
           <RoomSettings
             poisonEnabled={poisonEnabled}
@@ -382,13 +385,13 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
       {lastPlayerStanding && !gameEnded && !showEndConfirm && (
         <div className="mx-2 mb-3 bg-yellow-900/50 border border-yellow-600 rounded-lg p-3 flex items-center justify-between">
           <span className="text-yellow-200 text-sm font-medium">
-            🏆 ¡{lastPlayerStanding.username} es el último jugador en pie!
+            {t('game.lastStanding', { name: lastPlayerStanding.username })}
           </span>
           <button
             onClick={() => setShowEndConfirm(true)}
             className="bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold text-sm px-3 py-1 rounded-lg transition-colors"
           >
-            Finalizar Partida
+            {t('game.endGame')}
           </button>
         </div>
       )}
@@ -399,15 +402,15 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4 text-center shadow-2xl">
             <p className="text-3xl">🏆</p>
             <h3 className="text-xl font-bold text-white">
-              ¿Finalizar la partida?
+              {t('game.endGameConfirmTitle')}
             </h3>
             {lastPlayerStanding && (
               <p className="text-yellow-300 text-sm">
-                {lastPlayerStanding.username} es el último jugador en pie
+                {t('game.lastStandingPlain', { name: lastPlayerStanding.username })}
               </p>
             )}
             <p className="text-gray-400 text-sm">
-              Se guardará el resultado y la sala se cerrará para todos los jugadores.
+              {t('game.endGameOnlineNote')}
             </p>
             <div className="flex gap-3 pt-2">
               <button
@@ -417,13 +420,13 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
                 }}
                 className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold py-3 rounded-lg transition-colors"
               >
-                Sí, finalizar
+                {t('game.endGameConfirm')}
               </button>
               <button
                 onClick={() => setShowEndConfirm(false)}
                 className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
               >
-                Continuar jugando
+                {t('game.keepPlaying')}
               </button>
             </div>
           </div>
@@ -434,11 +437,11 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
       {gameEnded && (
         <div className="mx-2 mb-3 bg-purple-900/50 border border-purple-600 rounded-lg p-4 text-center space-y-3">
           <p className="text-xl font-bold text-purple-200">
-            🎉 ¡Partida Finalizada!
+            {t('game.gameOver')}
           </p>
           {gameEnded.winnerName && (
             <p className="text-lg text-yellow-300">
-              Ganador: {gameEnded.winnerName}
+              {t('game.winner', { name: gameEnded.winnerName })}
             </p>
           )}
           <div className="flex gap-3 justify-center">
@@ -446,13 +449,13 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
               onClick={restartGame}
               className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
             >
-              🔄 Reiniciar Partida
+              {t('game.restartGame')}
             </button>
             <button
               onClick={handleLeave}
               className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
             >
-              🚪 Salir
+              {t('game.leave')}
             </button>
           </div>
         </div>
@@ -539,7 +542,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
                   onClick={() => setShowCmdDamage(showCmdDamage === player.id ? null : player.id)}
                   className="mt-2 text-xs text-gray-200 hover:text-white transition-colors w-full text-center drop-shadow-lg"
                 >
-                  ⚔️ Commander Damage {showCmdDamage === player.id ? '▲' : '▼'}
+                  ⚔️ {t('game.commanderDamage')} {showCmdDamage === player.id ? '▲' : '▼'}
                 </button>
 
                 {showCmdDamage === player.id && (
@@ -564,19 +567,19 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
             onClick={() => setShowEndConfirm(true)}
             className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
           >
-            🏁 Finalizar Partida
+            {t('game.endGameShort')}
           </button>
           <button
             onClick={restartGame}
             className="bg-gray-700 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
           >
-            🔄 Reiniciar
+            {t('game.restart')}
           </button>
           <button
             onClick={handleLeave}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold px-4 py-2 rounded-lg transition-colors text-sm"
           >
-            🚪 Salir
+            {t('game.leave')}
           </button>
         </div>
       )}

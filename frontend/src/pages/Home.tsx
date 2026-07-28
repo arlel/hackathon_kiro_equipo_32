@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useTranslation } from '@/i18n/I18nContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import type { GameFormat } from '@/types/game'
 
-const FORMATS: { value: GameFormat; label: string; life: number }[] = [
-  { value: 'commander', label: 'Commander', life: 40 },
-  { value: '20vida', label: '20 Vida', life: 20 },
-  { value: 'custom', label: 'Custom', life: 20 },
+const FORMATS: { value: GameFormat; life: number }[] = [
+  { value: 'commander', life: 40 },
+  { value: '20vida', life: 20 },
+  { value: 'custom', life: 20 },
 ]
 
 const ROOM_CODE_REGEX = /^[A-Z0-9]{6}$/
@@ -18,6 +20,7 @@ function isValidRoomCode(code: string): boolean {
 export default function Home() {
   const navigate = useNavigate()
   const { isAuthenticated, logout } = useAuth()
+  const { t } = useTranslation()
 
   // Room configuration state
   const [format, setFormat] = useState<GameFormat>('commander')
@@ -90,16 +93,19 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-950 text-white">
       <h1 className="text-4xl font-bold text-purple-400 mb-2">⚔️ MTG Life Counter</h1>
-      <p className="text-gray-400 mb-8">Contador de vidas con sincronización en tiempo real</p>
+      <p className="text-gray-400 mb-4">{t('home.subtitle')}</p>
+      <div className="mb-8">
+        <LanguageSwitcher />
+      </div>
 
       <div className="w-full max-w-md space-y-6">
         {/* Create Room */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-gray-100">Crear Sala</h2>
+          <h2 className="text-xl font-semibold text-gray-100">{t('home.createRoom')}</h2>
 
           {/* Format Selector */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Formato</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('home.format')}</label>
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value as GameFormat)}
@@ -107,7 +113,7 @@ export default function Home() {
             >
               {FORMATS.map((f) => (
                 <option key={f.value} value={f.value}>
-                  {f.label} ({f.life} vida)
+                  {t('home.formatOption', { label: t(`format.${f.value}`), life: f.life })}
                 </option>
               ))}
             </select>
@@ -116,7 +122,7 @@ export default function Home() {
           {/* Custom Starting Life - shown only when Custom format selected */}
           {format === 'custom' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Vida inicial personalizada</label>
+              <label className="block text-sm text-gray-400 mb-1">{t('home.customLife')}</label>
               <input
                 type="number"
                 min={1}
@@ -134,7 +140,7 @@ export default function Home() {
 
           {/* Toggle: Poison Counters */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-300">Contadores de veneno</span>
+            <span className="text-sm text-gray-300">{t('home.poisonCounters')}</span>
             <button
               type="button"
               role="switch"
@@ -154,7 +160,7 @@ export default function Home() {
 
           {/* Toggle: Turn Counter */}
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-300">Contador de turnos</span>
+            <span className="text-sm text-gray-300">{t('home.turnCounter')}</span>
             <button
               type="button"
               role="switch"
@@ -177,30 +183,30 @@ export default function Home() {
             onClick={handleCreateRoom}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            Crear Sala
+            {t('home.createRoom')}
           </button>
 
           <button
             onClick={handleCreateLocalRoom}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            🏠 Crear Sala Local
+            {t('home.createLocalRoom')}
           </button>
           {!isAuthenticated && (
             <p className="text-xs text-gray-500 text-center">
-              La sala local requiere iniciar sesión
+              {t('home.localRequiresLogin')}
             </p>
           )}
         </div>
 
         {/* Join Room */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-gray-100">Unirse a Sala</h2>
+          <h2 className="text-xl font-semibold text-gray-100">{t('home.joinRoom')}</h2>
 
           <div>
             <input
               type="text"
-              placeholder="Código de sala (6 caracteres)"
+              placeholder={t('home.roomCodePlaceholder')}
               value={roomCode}
               onChange={(e) => handleRoomCodeChange(e.target.value)}
               className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white placeholder-gray-500 uppercase focus:outline-none focus:ring-2 ${
@@ -212,7 +218,7 @@ export default function Home() {
             />
             {roomCode.length > 0 && !roomCodeValid && (
               <p className="text-xs text-red-400 mt-1">
-                El código debe tener exactamente 6 caracteres (A-Z, 0-9)
+                {t('home.roomCodeError')}
               </p>
             )}
           </div>
@@ -222,7 +228,7 @@ export default function Home() {
             disabled={!roomCodeValid}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            Unirse
+            {t('home.join')}
           </button>
         </div>
 
@@ -232,33 +238,33 @@ export default function Home() {
             onClick={() => navigate('/history')}
             className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
           >
-            📊 Historial
+            {t('home.history')}
           </button>
           <button
             onClick={() => navigate('/stats')}
             className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
           >
-            📈 Estadísticas
+            {t('home.stats')}
           </button>
           <button
             onClick={() => navigate('/decks')}
             className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
           >
-            🃏 Mis Mazos
+            {t('home.myDecks')}
           </button>
           {isAuthenticated ? (
             <button
               onClick={logout}
               className="bg-gray-800 hover:bg-gray-700 text-red-400 py-2 rounded-lg transition-colors text-sm"
             >
-              🚪 Cerrar Sesión
+              {t('home.logout')}
             </button>
           ) : (
             <button
               onClick={() => navigate('/login')}
               className="bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition-colors text-sm"
             >
-              👤 Login
+              {t('home.login')}
             </button>
           )}
         </div>

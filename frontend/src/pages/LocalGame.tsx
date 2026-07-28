@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useTranslation } from '@/i18n/I18nContext'
 import { useLocalRoom } from '@/hooks/useLocalRoom'
 import { saveGame } from '@/services/api'
 import type { GameFormat, RoomConfig, Player } from '@/types/game'
@@ -27,6 +28,7 @@ export default function LocalGame() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { isAuthenticated, user } = useAuth()
+  const { t } = useTranslation()
   const {
     room,
     createRoom,
@@ -110,21 +112,21 @@ export default function LocalGame() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-950">
         <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md text-center space-y-4">
-          <h2 className="text-xl font-semibold text-white">Autenticación requerida</h2>
+          <h2 className="text-xl font-semibold text-white">{t('local.authRequired')}</h2>
           <p className="text-gray-400 text-sm">
-            Necesitas iniciar sesión para crear una sala local.
+            {t('local.authRequiredNote')}
           </p>
           <button
             onClick={() => navigate('/login')}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            Ir a Login
+            {t('local.goToLogin')}
           </button>
           <button
             onClick={() => navigate('/')}
             className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-2 rounded-lg transition-colors"
           >
-            Volver al inicio
+            {t('local.backToHome')}
           </button>
         </div>
       </div>
@@ -137,18 +139,18 @@ export default function LocalGame() {
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-950">
         <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Sala Local</h2>
+            <h2 className="text-xl font-semibold text-white">{t('local.title')}</h2>
             <button
               onClick={() => navigate('/')}
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
-              ← Volver
+              ← {t('common.back')}
             </button>
           </div>
 
           {/* Format selector */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-300">Formato</label>
+            <label className="block text-sm font-medium text-gray-300">{t('local.format')}</label>
             <div className="grid grid-cols-3 gap-2">
               {(['commander', '20vida', 'custom'] as GameFormat[]).map((f) => (
                 <button
@@ -161,7 +163,7 @@ export default function LocalGame() {
                       : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                   }`}
                 >
-                  {f === 'commander' ? 'Commander (40)' : f === '20vida' ? '20 Vida' : 'Custom'}
+                  {f === 'commander' ? t('local.formatCommander') : t(`format.${f}`)}
                 </button>
               ))}
             </div>
@@ -170,7 +172,7 @@ export default function LocalGame() {
           {/* Custom life input */}
           {format === 'custom' && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">Vida inicial</label>
+              <label className="block text-sm font-medium text-gray-300">{t('local.startingLife')}</label>
               <input
                 type="number"
                 min={1}
@@ -183,7 +185,7 @@ export default function LocalGame() {
 
           {/* Poison toggle */}
           <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm text-gray-300">Contadores de veneno</span>
+            <span className="text-sm text-gray-300">{t('local.poisonCounters')}</span>
             <input
               type="checkbox"
               checked={poisonEnabled}
@@ -194,7 +196,7 @@ export default function LocalGame() {
 
           {/* Turn counter toggle */}
           <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-sm text-gray-300">Contador de turnos</span>
+            <span className="text-sm text-gray-300">{t('local.turnCounter')}</span>
             <input
               type="checkbox"
               checked={turnEnabled}
@@ -223,7 +225,7 @@ export default function LocalGame() {
             }}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            Crear Sala Local
+            {t('local.createRoom')}
           </button>
         </div>
       </div>
@@ -253,21 +255,21 @@ export default function LocalGame() {
       <div className="min-h-screen flex flex-col items-center p-4 bg-gray-950">
         <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Agregar Jugadores</h2>
+            <h2 className="text-xl font-semibold text-white">{t('local.addPlayers')}</h2>
             <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded font-mono">
               {room.code}
             </span>
           </div>
 
           <p className="text-sm text-gray-400">
-            Formato: {room.config.format} • Vida: {room.config.startingLife}
+            {t('local.roomInfo', { format: t(`format.${room.config.format}`), life: room.config.startingLife })}
           </p>
 
           {/* Current players list */}
           {room.players.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-gray-400">
-                Jugadores ({room.players.length}/12)
+                {t('local.playersCount', { count: room.players.length })}
               </h3>
               {room.players.map((p, idx) => {
                 const isHost = idx === 0
@@ -293,7 +295,7 @@ export default function LocalGame() {
                       type="button"
                       onClick={() => removePlayer(p.id)}
                       className="text-red-400 hover:text-red-300 text-sm flex-shrink-0 ml-2"
-                      aria-label={`Eliminar ${p.username}`}
+                      aria-label={t('local.removePlayer', { name: p.username })}
                     >
                       ✕
                     </button>
@@ -305,7 +307,7 @@ export default function LocalGame() {
               {/* Commander search for host if in commander format and no commander yet */}
               {room.config.format === 'commander' && room.players[0] && !room.players[0].commanderName && (
                 <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-3 space-y-2">
-                  <p className="text-xs text-purple-300 mb-2">Elegí tu Commander:</p>
+                  <p className="text-xs text-purple-300 mb-2">{t('local.chooseCommander')}</p>
                   {/* Option 1: Pick from saved decks */}
                   {isAuthenticated && (
                     <DeckSelector
@@ -360,7 +362,7 @@ export default function LocalGame() {
                         })
                       }
                     }}
-                    placeholder="O buscar Commander..."
+                    placeholder={t('local.searchCommanderAlt')}
                   />
                 </div>
               )}
@@ -372,7 +374,7 @@ export default function LocalGame() {
             <div className="space-y-3 border-t border-gray-800 pt-4">
               <input
                 type="text"
-                placeholder="Nombre del jugador"
+                placeholder={t('local.playerNamePlaceholder')}
                 value={newPlayerName}
                 onChange={(e) => setNewPlayerName(e.target.value)}
                 maxLength={30}
@@ -403,7 +405,7 @@ export default function LocalGame() {
                       setNewPartnerImage('')
                     }
                   }}
-                  placeholder="Buscar Commander..."
+                  placeholder={t('local.searchCommander')}
                 />
               )}
 
@@ -429,7 +431,7 @@ export default function LocalGame() {
                 disabled={!newPlayerName.trim()}
                 className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium py-2 rounded-lg transition-colors"
               >
-                Agregar Jugador
+                {t('local.addPlayer')}
               </button>
             </div>
           )}
@@ -441,7 +443,7 @@ export default function LocalGame() {
             disabled={room.players.length < 2}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-3 rounded-lg transition-colors"
           >
-            Iniciar Partida ({room.players.length} jugadores)
+            {t('local.startGame', { count: room.players.length })}
           </button>
         </div>
       </div>
@@ -537,7 +539,7 @@ export default function LocalGame() {
         {/* Header */}
         <div className="flex items-center justify-between mb-3 px-2">
           <div className="text-sm text-gray-400">
-            Sala Local:{' '}
+            {t('game.localRoom')}{' '}
             <span className="text-purple-400 font-mono font-bold">{room.code}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -548,11 +550,11 @@ export default function LocalGame() {
                 className="flex items-center gap-1.5 bg-amber-900/60 hover:bg-amber-800/70 border border-amber-600 text-amber-200 px-3 py-1.5 rounded-lg transition-colors font-medium"
               >
                 <span>🔄</span>
-                <span className="text-sm">Turno:</span>
+                <span className="text-sm">{t('game.turn')}</span>
                 <span className="font-mono text-base font-bold">{room.turnCount}</span>
               </button>
             )}
-            <span>{room.players.length}P • {room.config.format}</span>
+            <span>{room.players.length}P • {t(`format.${room.config.format}`)}</span>
             <RoomSettings
               poisonEnabled={room.config.poisonEnabled}
               turnCounterEnabled={room.config.turnCounterEnabled}
@@ -577,14 +579,14 @@ export default function LocalGame() {
         {activePlayers.length === 1 && room.players.length >= 2 && !gameEnded && !showEndConfirm && (
           <div className="mx-2 mb-3 bg-yellow-900/50 border border-yellow-600 rounded-lg p-3 flex items-center justify-between">
             <span className="text-yellow-200 text-sm font-medium">
-              🏆 ¡{activePlayers[0].username} es el último jugador en pie!
+              {t('game.lastStanding', { name: activePlayers[0].username })}
             </span>
             <button
               type="button"
               onClick={() => setShowEndConfirm(true)}
               className="bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold text-sm px-3 py-1 rounded-lg transition-colors"
             >
-              Finalizar Partida
+              {t('game.endGame')}
             </button>
           </div>
         )}
@@ -595,15 +597,15 @@ export default function LocalGame() {
             <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm space-y-4 text-center shadow-2xl">
               <p className="text-3xl">🏆</p>
               <h3 className="text-xl font-bold text-white">
-                ¿Finalizar la partida?
+                {t('game.endGameConfirmTitle')}
               </h3>
               {activePlayers.length === 1 && (
                 <p className="text-yellow-300 text-sm">
-                  {activePlayers[0].username} es el último jugador en pie
+                  {t('game.lastStandingPlain', { name: activePlayers[0].username })}
                 </p>
               )}
               <p className="text-gray-400 text-sm">
-                Se guardará el resultado de la partida.
+                {t('game.endGameLocalNote')}
               </p>
               <div className="flex gap-3 pt-2">
                 <button
@@ -614,14 +616,14 @@ export default function LocalGame() {
                   }}
                   className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-gray-900 font-semibold py-3 rounded-lg transition-colors"
                 >
-                  Sí, finalizar
+                  {t('game.endGameConfirm')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowEndConfirm(false)}
                   className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors"
                 >
-                  Continuar jugando
+                  {t('game.keepPlaying')}
                 </button>
               </div>
             </div>
@@ -631,10 +633,10 @@ export default function LocalGame() {
         {/* Game ended banner */}
         {gameEnded && (
           <div className="mb-4 p-4 bg-yellow-900/30 border border-yellow-600 rounded-xl text-center">
-            <p className="text-yellow-300 font-semibold text-lg">🏆 Partida Finalizada</p>
+            <p className="text-yellow-300 font-semibold text-lg">{t('game.gameOverLocal')}</p>
             {activePlayers.length === 1 && (
               <p className="text-yellow-200 text-sm mt-1">
-                Ganador: {activePlayers[0].username}
+                {t('game.winner', { name: activePlayers[0].username })}
               </p>
             )}
           </div>
@@ -678,7 +680,7 @@ export default function LocalGame() {
                     }
                     className="mt-1 text-xs text-gray-200 hover:text-white transition-colors w-full text-center"
                   >
-                    ⚔️ Commander Damage
+                    ⚔️ {t('game.commanderDamage')}
                   </button>
                   {showCmdDamage === player.id && (
                     <div className="mt-2">
@@ -700,10 +702,10 @@ export default function LocalGame() {
         {showAddPlayerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
             <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-sm space-y-3">
-              <h3 className="text-lg font-bold text-white">Agregar Jugador</h3>
+              <h3 className="text-lg font-bold text-white">{t('local.addPlayerTitle')}</h3>
               <input
                 type="text"
-                placeholder="Nombre del jugador"
+                placeholder={t('local.playerNamePlaceholder')}
                 value={newPlayerName}
                 onChange={(e) => setNewPlayerName(e.target.value)}
                 maxLength={30}
@@ -732,7 +734,7 @@ export default function LocalGame() {
                       setNewPartnerImage('')
                     }
                   }}
-                  placeholder="Buscar Commander..."
+                  placeholder={t('local.searchCommander')}
                 />
               )}
               <div className="flex gap-3 pt-2">
@@ -757,14 +759,14 @@ export default function LocalGame() {
                   disabled={!newPlayerName.trim()}
                   className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold py-2 rounded-lg transition-colors"
                 >
-                  Agregar
+                  {t('local.add')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddPlayerModal(false)}
                   className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition-colors"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -779,7 +781,7 @@ export default function LocalGame() {
               onClick={() => setShowEndConfirm(true)}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-colors"
             >
-              Finalizar Partida
+              {t('game.endGame')}
             </button>
           )}
           <button
@@ -787,14 +789,14 @@ export default function LocalGame() {
             onClick={handleRestart}
             className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 rounded-lg transition-colors"
           >
-            {gameEnded ? '🔄 Nueva Partida' : '🔄 Reiniciar'}
+            {gameEnded ? t('game.newGame') : t('game.restart')}
           </button>
           <button
             type="button"
             onClick={() => navigate('/')}
             className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-3 rounded-lg transition-colors"
           >
-            Salir
+            {t('game.leavePlain')}
           </button>
         </div>
       </div>

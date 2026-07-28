@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { listDecks } from '@/services/api'
+import { useTranslation } from '@/i18n/I18nContext'
 import type { GameFormat, DeckRecord } from '@/types/game'
 
 interface DeckSelectorProps {
@@ -19,6 +20,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (isOpen) {
@@ -33,7 +35,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
       const allDecks = await listDecks()
       setDecks(allDecks.filter((d) => d.format === format && d.status === 'active'))
     } catch {
-      setError('No se pudieron cargar los mazos')
+      setError(t('deckSelector.loadError'))
     } finally {
       setIsLoading(false)
     }
@@ -78,7 +80,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
         }`}
       >
         <span>📦</span>
-        <span>Mis Mazos</span>
+        <span>{t('deckSelector.myDecks')}</span>
         <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>▾</span>
       </button>
 
@@ -86,7 +88,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
       {isOpen && (
         <div className="mt-2 bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
           {isLoading && (
-            <div className="px-4 py-3 text-gray-400 text-sm">Cargando mazos...</div>
+            <div className="px-4 py-3 text-gray-400 text-sm">{t('deckSelector.loading')}</div>
           )}
 
           {error && (
@@ -95,7 +97,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
 
           {!isLoading && !error && decks.length === 0 && (
             <div className="px-4 py-3 text-gray-500 text-sm">
-              No tienes mazos activos para este formato.
+              {t('deckSelector.noDecks')}
             </div>
           )}
 
@@ -112,7 +114,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
                 }`}
               >
                 <span className="text-gray-500">✕</span>
-                <span>Sin mazo</span>
+                <span>{t('deckSelector.noDeck')}</span>
               </button>
 
               {decks.map((deck) => (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from '@/i18n/I18nContext'
 
 interface StarterPickerProps {
   players: { id: string; username: string }[]
@@ -7,6 +8,7 @@ interface StarterPickerProps {
 }
 
 export default function StarterPicker({ players, selectedId, onSelect }: StarterPickerProps) {
+  const { t } = useTranslation()
   const [animating, setAnimating] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showResult, setShowResult] = useState(false)
@@ -120,7 +122,7 @@ export default function StarterPicker({ players, selectedId, onSelect }: Starter
           </span>
         ) : (
           <span className="text-gray-500 text-lg">
-            {players.length < 2 ? 'Se necesitan al menos 2 jugadores' : '¿Quién empieza?'}
+            {players.length < 2 ? t('starterPicker.needPlayers') : t('starterPicker.whoStarts')}
           </span>
         )}
 
@@ -136,7 +138,7 @@ export default function StarterPicker({ players, selectedId, onSelect }: Starter
       {/* Winner announcement */}
       {showResult && !animating && selectedPlayer && (
         <p className="text-yellow-300 text-sm font-medium animate-fade-in">
-          🎲 ¡{selectedPlayer.username} empieza la partida!
+          {t('starterPicker.starts', { name: selectedPlayer.username })}
         </p>
       )}
 
@@ -154,7 +156,7 @@ export default function StarterPicker({ players, selectedId, onSelect }: Starter
           }
         `}
       >
-        {animating ? 'Seleccionando...' : 'Seleccionar Jugador Inicial'}
+        {animating ? t('starterPicker.selecting') : t('starterPicker.select')}
       </button>
     </div>
   )

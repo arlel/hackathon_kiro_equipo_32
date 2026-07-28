@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { searchCommanders, getCardImageUrl, getColorDisplay, hasPartnerAbility } from '@/services/scryfall'
 import type { ScryfallCard } from '@/services/scryfall'
+import { useTranslation } from '@/i18n/I18nContext'
 
 interface CommanderSearchProps {
   value: string
@@ -9,7 +10,9 @@ interface CommanderSearchProps {
   placeholder?: string
 }
 
-export default function CommanderSearch({ value, onChange, onSelect, placeholder = 'Buscar Commander...' }: CommanderSearchProps) {
+export default function CommanderSearch({ value, onChange, onSelect, placeholder }: CommanderSearchProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('commanderSearch.searchCommander')
   const [query, setQuery] = useState(value)
   const [results, setResults] = useState<ScryfallCard[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -167,7 +170,7 @@ export default function CommanderSearch({ value, onChange, onSelect, placeholder
             value={query}
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={() => results.length > 0 && setIsOpen(true)}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 pr-8"
           />
           {isLoading && (
@@ -189,7 +192,7 @@ export default function CommanderSearch({ value, onChange, onSelect, placeholder
               <p className="text-sm font-medium truncate">{selectedCard.name}</p>
               <p className="text-xs text-gray-400">{getColorDisplay(selectedCard.color_identity)}</p>
               {showPartner && (
-                <p className="text-xs text-purple-400">✨ Partner</p>
+                <p className="text-xs text-purple-400">✨ {t('commanderSearch.partner')}</p>
               )}
             </div>
           </div>
@@ -227,14 +230,14 @@ export default function CommanderSearch({ value, onChange, onSelect, placeholder
       {/* Partner search field — shown only when selected commander has Partner */}
       {showPartner && (
         <div ref={partnerContainerRef} className="relative w-full">
-          <label className="block text-xs text-gray-400 mb-1">Partner (opcional)</label>
+          <label className="block text-xs text-gray-400 mb-1">{t('commanderSearch.partnerOptional')}</label>
           <div className="relative">
             <input
               type="text"
               value={partnerQuery}
               onChange={(e) => handlePartnerInputChange(e.target.value)}
               onFocus={() => partnerResults.length > 0 && setIsPartnerOpen(true)}
-              placeholder="Buscar Partner..."
+              placeholder={t('commanderSearch.searchPartner')}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 pr-8"
             />
             {isPartnerLoading && (
@@ -260,7 +263,7 @@ export default function CommanderSearch({ value, onChange, onSelect, placeholder
                 type="button"
                 onClick={handleClearPartner}
                 className="text-gray-500 hover:text-red-400 text-sm"
-                aria-label="Quitar partner"
+                aria-label={t('commanderSearch.removePartner')}
               >
                 ✕
               </button>

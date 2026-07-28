@@ -1,4 +1,5 @@
 import { useLongPress } from '@/hooks/useLongPress'
+import { useTranslation } from '@/i18n/I18nContext'
 
 interface DamageSource {
   id: string
@@ -20,6 +21,7 @@ interface DamageRowProps {
 }
 
 function DamageRow({ source, onAdjust }: DamageRowProps) {
+  const { t } = useTranslation()
   const decrementHandlers = useLongPress({
     onShortPress: () => onAdjust(source.id, -1),
     onLongPress: () => onAdjust(source.id, -10),
@@ -56,7 +58,7 @@ function DamageRow({ source, onAdjust }: DamageRowProps) {
           <span className="text-xs text-gray-400 truncate">{source.playerName}</span>
         )}
         {source.isPartner && (
-          <span className="text-xs text-purple-400">Partner</span>
+          <span className="text-xs text-purple-400">{t('cmdDamage.partner')}</span>
         )}
       </div>
 
@@ -96,14 +98,15 @@ function DamageRow({ source, onAdjust }: DamageRowProps) {
 }
 
 export default function CmdDamagePanel({ sources, onAdjust }: CmdDamagePanelProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-2 p-3 bg-gray-900 rounded-xl">
       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-1">
-        Commander Damage
+        {t('cmdDamage.heading')}
       </h3>
       {sources.length === 0 ? (
         <p className="text-sm text-gray-500 text-center py-2">
-          No hay fuentes de daño
+          {t('cmdDamage.noSources')}
         </p>
       ) : (
         sources.map((source) => (

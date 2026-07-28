@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from '@/i18n/I18nContext'
 
 export type DisplayMode = 'all' | 'self' | 'compact'
 
@@ -9,11 +10,12 @@ interface DisplaySettingsProps {
 
 export default function DisplaySettings({ mode, onChange }: DisplaySettingsProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const { t } = useTranslation()
 
   const options: { value: DisplayMode; label: string; icon: string }[] = [
-    { value: 'all', label: 'Todos los jugadores', icon: '👥' },
-    { value: 'self', label: 'Solo mi Commander', icon: '🎯' },
-    { value: 'compact', label: 'Vista compacta', icon: '📋' },
+    { value: 'all', label: t('displaySettings.all'), icon: '👥' },
+    { value: 'self', label: t('displaySettings.self'), icon: '🎯' },
+    { value: 'compact', label: t('displaySettings.compact'), icon: '📋' },
   ]
 
   return (
@@ -24,8 +26,8 @@ export default function DisplaySettings({ mode, onChange }: DisplaySettingsProps
         className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
           isOpen ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
         }`}
-        title="Opciones de visualización"
-        aria-label="Opciones de visualización"
+        title={t('displaySettings.title')}
+        aria-label={t('displaySettings.title')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
           <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
@@ -35,7 +37,7 @@ export default function DisplaySettings({ mode, onChange }: DisplaySettingsProps
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-52 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-2 z-50">
-          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide px-2 mb-2">Vista</p>
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide px-2 mb-2">{t('displaySettings.heading')}</p>
           {options.map((opt) => (
             <button
               key={opt.value}
