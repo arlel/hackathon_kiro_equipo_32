@@ -10,34 +10,40 @@
        Deliberately avoids flexbox/grid/shadows/gradients for old-WebKit safety. */
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 18px; }
-    .wrap { max-width: 760px; margin: 0 auto; padding: 8px 10px 40px; }
-    h1 { font-size: 22px; text-align: center; margin: 6px 0; }
-    .note { font-size: 13px; color: #555; text-align: center; margin-bottom: 10px; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 16px; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 6px 8px 30px; }
+    h1 { font-size: 20px; text-align: center; margin: 4px 0; }
+    .note { font-size: 12px; color: #555; text-align: center; margin-bottom: 8px; }
 
     .btn {
       display: inline-block; border: 2px solid #000; background: #fff; color: #000;
-      font-size: 22px; font-weight: bold; padding: 12px 0; min-width: 58px;
-      text-align: center; text-decoration: none; margin: 3px; cursor: pointer;
-      -webkit-appearance: none; appearance: none; border-radius: 0;
+      font-size: 20px; font-weight: bold; padding: 10px 0; min-width: 52px;
+      text-align: center; text-decoration: none; margin: 2px; cursor: pointer;
+      -webkit-appearance: none; appearance: none; border-radius: 0; vertical-align: middle;
     }
     .btn.sel { background: #000; color: #fff; }
-    .btn.block { display: block; width: 100%; padding: 16px 0; margin: 8px 0; }
-    .btn.big { min-width: 72px; font-size: 26px; }
+    .btn.block { display: block; width: 100%; padding: 14px 0; margin: 8px 0; }
+    /* Compact life buttons that sit inline with the life total */
+    .btn.s { min-width: 48px; font-size: 18px; padding: 10px 0; }
 
-    .card { border: 3px solid #000; margin: 10px 0; padding: 8px 10px; }
+    /* Compact card so up to 4 fit on one Kindle screen */
+    .card { border: 2px solid #000; margin: 6px 0; padding: 5px 8px; }
     .card.out { border-style: dashed; color: #555; }
-    .name { font-size: 20px; font-weight: bold; }
-    .outlabel { float: right; font-size: 15px; font-weight: bold; border: 2px solid #000; padding: 2px 6px; }
-    .life { font-size: 64px; font-weight: bold; text-align: center; line-height: 1.05; margin: 4px 0; }
-    .liferow { text-align: center; }
+    .hdr { overflow: hidden; line-height: 1.1; }
+    .name { display: inline-block; font-size: 16px; font-weight: bold; vertical-align: middle; }
+    .outlabel { display: inline-block; font-size: 12px; font-weight: bold; border: 2px solid #000; padding: 1px 5px; margin-left: 6px; vertical-align: middle; }
+    .cmdbtn { float: right; border: 2px solid #000; background: #fff; color: #000; font-size: 13px; font-weight: bold; padding: 5px 9px; cursor: pointer; -webkit-appearance: none; appearance: none; border-radius: 0; }
+    .cmdbtn.on { background: #000; color: #fff; }
+    /* Life total and its +/- buttons all on one line */
+    .row { text-align: center; white-space: nowrap; margin-top: 3px; }
+    .life { display: inline-block; min-width: 66px; font-size: 38px; font-weight: bold; text-align: center; vertical-align: middle; }
 
-    .cmd { margin-top: 8px; border-top: 2px solid #000; padding-top: 6px; }
-    .cmdrow { margin: 6px 0; }
-    .cmdname { display: inline-block; min-width: 130px; font-size: 16px; vertical-align: middle; }
-    .cmdval { display: inline-block; min-width: 46px; text-align: center; font-size: 24px; font-weight: bold; vertical-align: middle; }
+    .cmd { margin-top: 6px; border-top: 2px solid #000; padding-top: 4px; }
+    .cmdrow { margin: 5px 0; }
+    .cmdname { display: inline-block; min-width: 110px; font-size: 14px; vertical-align: middle; }
+    .cmdval { display: inline-block; min-width: 40px; text-align: center; font-size: 20px; font-weight: bold; vertical-align: middle; }
     .cmdval.lethal { text-decoration: underline; }
-    .lethaltag { font-size: 13px; font-weight: bold; }
+    .lethaltag { font-size: 12px; font-weight: bold; }
 
     .setup-row { margin: 14px 0; }
     .setup-row b { display: block; margin-bottom: 6px; font-size: 18px; }
@@ -155,24 +161,27 @@
 
     function renderGame() {
       var h = [];
-      h.push('<h1>MTG Kiro &mdash; Kindle</h1>');
       for (var i = 0; i < state.players.length; i++) {
         var pl = state.players[i];
         var out = isOut(pl);
         h.push('<div class="card' + (out ? ' out' : '') + '" id="card-' + i + '">');
+        // Header: name (+ OUT tag) on the left, commander-damage toggle on the right
+        h.push('<div class="hdr">');
+        h.push('<button type="button" class="cmdbtn' + (state.openCmd === i ? ' on' : '') + '" onclick="toggleCmd(' + i + ')">'
+          + (state.openCmd === i ? 'HIDE' : 'CMD') + '</button>');
+        h.push('<span class="name">' + esc(pl.name) + '</span>');
         h.push('<span class="outlabel" id="out-' + i + '"' + (out ? '' : ' style="display:none"') + '>OUT</span>');
-        h.push('<div class="name">' + esc(pl.name) + '</div>');
-        h.push('<div class="life" id="life-' + i + '">' + pl.life + '</div>');
-        h.push('<div class="liferow">');
-        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',-5)">&minus;5</button>');
-        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',-1)">&minus;1</button>');
-        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',1)">+1</button>');
-        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',5)">+5</button>');
+        h.push('</div>');
+        // Life total flanked by its adjust buttons, all on one line
+        h.push('<div class="row">');
+        h.push('<button type="button" class="btn s" onclick="adjLife(' + i + ',-5)">&minus;5</button>');
+        h.push('<button type="button" class="btn s" onclick="adjLife(' + i + ',-1)">&minus;1</button>');
+        h.push('<span class="life" id="life-' + i + '">' + pl.life + '</span>');
+        h.push('<button type="button" class="btn s" onclick="adjLife(' + i + ',1)">+1</button>');
+        h.push('<button type="button" class="btn s" onclick="adjLife(' + i + ',5)">+5</button>');
         h.push('</div>');
 
         // Commander damage panel (only meaningful with 2+ players)
-        h.push('<button type="button" class="btn block" onclick="toggleCmd(' + i + ')">'
-          + (state.openCmd === i ? 'Hide commander damage' : 'Commander damage') + '</button>');
         if (state.openCmd === i) {
           h.push('<div class="cmd">');
           for (var s = 0; s < state.players.length; s++) {
@@ -181,16 +190,15 @@
             var lethal = dmg >= 21;
             h.push('<div class="cmdrow">');
             h.push('<span class="cmdname">from ' + esc(state.players[s].name) + '</span>');
-            h.push('<button type="button" class="btn" onclick="adjCmd(' + i + ',' + s + ',-1)">&minus;</button>');
+            h.push('<button type="button" class="btn s" onclick="adjCmd(' + i + ',' + s + ',-1)">&minus;</button>');
             h.push('<span class="cmdval' + (lethal ? ' lethal' : '') + '" id="cmd-' + i + '-' + s + '">' + dmg + '</span>');
-            h.push('<button type="button" class="btn" onclick="adjCmd(' + i + ',' + s + ',1)">+</button>');
-            h.push('<span class="lethaltag" id="leth-' + i + '-' + s + '"' + (lethal ? '' : ' style="display:none"') + '> 21+ LETHAL</span>');
+            h.push('<button type="button" class="btn s" onclick="adjCmd(' + i + ',' + s + ',1)">+</button>');
+            h.push('<span class="lethaltag" id="leth-' + i + '-' + s + '"' + (lethal ? '' : ' style="display:none"') + '> 21+</span>');
             h.push('</div>');
           }
           h.push('<div class="note">Commander damage also lowers that player\'s life.</div>');
           h.push('</div>');
         }
-        h.push('<div class="clear"></div>');
         h.push('</div>');
       }
       h.push('<button type="button" class="btn block" onclick="newGame()">New game</button>');
