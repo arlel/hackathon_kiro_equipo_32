@@ -268,6 +268,16 @@ export default function Home() {
             </button>
           )}
         </div>
+
+        {/* Standalone e-ink page — full page load, leaves the SPA */}
+        <div className="text-center">
+          <a
+            href="/kindle"
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {t('home.kindleVersion')}
+          </a>
+        </div>
       </div>
     </div>
   )

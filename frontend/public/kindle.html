@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MTG Kiro - Kindle</title>
+  <style>
+    /* High-contrast, animation-free styling tuned for Kindle e-ink (grayscale,
+       slow refresh). Pure black on white, thick borders, big tap targets.
+       Deliberately avoids flexbox/grid/shadows/gradients for old-WebKit safety. */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 18px; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 8px 10px 40px; }
+    h1 { font-size: 22px; text-align: center; margin: 6px 0; }
+    .note { font-size: 13px; color: #555; text-align: center; margin-bottom: 10px; }
+
+    .btn {
+      display: inline-block; border: 2px solid #000; background: #fff; color: #000;
+      font-size: 22px; font-weight: bold; padding: 12px 0; min-width: 58px;
+      text-align: center; text-decoration: none; margin: 3px; cursor: pointer;
+      -webkit-appearance: none; appearance: none; border-radius: 0;
+    }
+    .btn.sel { background: #000; color: #fff; }
+    .btn.block { display: block; width: 100%; padding: 16px 0; margin: 8px 0; }
+    .btn.big { min-width: 72px; font-size: 26px; }
+
+    .card { border: 3px solid #000; margin: 10px 0; padding: 8px 10px; }
+    .card.out { border-style: dashed; color: #555; }
+    .name { font-size: 20px; font-weight: bold; }
+    .outlabel { float: right; font-size: 15px; font-weight: bold; border: 2px solid #000; padding: 2px 6px; }
+    .life { font-size: 64px; font-weight: bold; text-align: center; line-height: 1.05; margin: 4px 0; }
+    .liferow { text-align: center; }
+
+    .cmd { margin-top: 8px; border-top: 2px solid #000; padding-top: 6px; }
+    .cmdrow { margin: 6px 0; }
+    .cmdname { display: inline-block; min-width: 130px; font-size: 16px; vertical-align: middle; }
+    .cmdval { display: inline-block; min-width: 46px; text-align: center; font-size: 24px; font-weight: bold; vertical-align: middle; }
+    .cmdval.lethal { text-decoration: underline; }
+    .lethaltag { font-size: 13px; font-weight: bold; }
+
+    .setup-row { margin: 14px 0; }
+    .setup-row b { display: block; margin-bottom: 6px; font-size: 18px; }
+    input[type=text] { font-size: 20px; padding: 10px; border: 2px solid #000; width: 100%; border-radius: 0; -webkit-appearance: none; appearance: none; }
+    .clear { clear: both; }
+  </style>
+</head>
+<body>
+  <div class="wrap"><div id="app"></div></div>
+
+  <script>
+    /* ES5 only (no let/const/arrow/template-literals) for maximum compatibility
+       with the Kindle Paperwhite 2020 experimental browser. */
+    var KEY = 'kindleGame';
+
+    var state = {
+      phase: 'setup',
+      count: 4,
+      startingLife: 40,
+      names: ['P1', 'P2', 'P3', 'P4'],
+      players: [],
+      openCmd: -1
+    };
+
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    }
+    function load() {
+      try {
+        var raw = localStorage.getItem(KEY);
+        if (!raw) return;
+        var s = JSON.parse(raw);
+        if (s && s.phase) {
+          for (var k in s) { if (s.hasOwnProperty(k)) state[k] = s[k]; }
+        }
+      } catch (e) {}
+    }
+
+    function esc(str) {
+      str = '' + str;
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function nameOf(i) {
+      return (state.names[i] && ('' + state.names[i]).length) ? state.names[i] : ('P' + (i + 1));
+    }
+
+    /* ---- Setup screen ---------------------------------------------------- */
+    function setCount(c) { syncNames(); state.count = c; trimNames(); render(); }
+    function setLife(v) { if (v < 1) v = 1; state.startingLife = v; syncNames(); render(); }
+    function trimNames() {
+      while (state.names.length < state.count) state.names.push('P' + (state.names.length + 1));
+      state.names.length = state.count;
+    }
+    function syncNames() {
+      for (var i = 0; i < state.count; i++) {
+        var el = document.getElementById('nm' + i);
+        if (el) state.names[i] = el.value;
+      }
+    }
+
+    function renderSetup() {
+      trimNames();
+      var h = [];
+      h.push('<h1>MTG Kiro &mdash; Kindle</h1>');
+      h.push('<div class="note">Local life counter for e-ink. No account, no internet needed.</div>');
+
+      h.push('<div class="setup-row"><b>Players</b>');
+      for (var c = 2; c <= 6; c++) {
+        h.push('<button type="button" class="btn' + (state.count === c ? ' sel' : '') + '" onclick="setCount(' + c + ')">' + c + '</button>');
+      }
+      h.push('</div>');
+
+      h.push('<div class="setup-row"><b>Starting life</b>');
+      var presets = [20, 30, 40];
+      for (var p = 0; p < presets.length; p++) {
+        var L = presets[p];
+        h.push('<button type="button" class="btn' + (state.startingLife === L ? ' sel' : '') + '" onclick="setLife(' + L + ')">' + L + '</button>');
+      }
+      h.push('<button type="button" class="btn" onclick="setLife(' + (state.startingLife - 1) + ')">&minus;</button>');
+      h.push('<span class="cmdval">' + state.startingLife + '</span>');
+      h.push('<button type="button" class="btn" onclick="setLife(' + (state.startingLife + 1) + ')">+</button>');
+      h.push('</div>');
+
+      h.push('<div class="setup-row"><b>Names</b>');
+      for (var n = 0; n < state.count; n++) {
+        h.push('<div style="margin:6px 0"><input type="text" id="nm' + n + '" value="' + esc(nameOf(n)) + '"></div>');
+      }
+      h.push('</div>');
+
+      h.push('<button type="button" class="btn block" onclick="startGame()">Start game</button>');
+      document.getElementById('app').innerHTML = h.join('');
+    }
+
+    /* ---- Game ------------------------------------------------------------ */
+    function startGame() {
+      syncNames();
+      state.players = [];
+      for (var i = 0; i < state.count; i++) {
+        var cmd = [];
+        for (var j = 0; j < state.count; j++) cmd.push(0);
+        state.players.push({ name: nameOf(i), life: state.startingLife, cmd: cmd });
+      }
+      state.phase = 'game';
+      state.openCmd = -1;
+      save();
+      render();
+    }
+
+    function isOut(pl) {
+      if (pl.life <= 0) return true;
+      for (var s = 0; s < pl.cmd.length; s++) { if (pl.cmd[s] >= 21) return true; }
+      return false;
+    }
+
+    function renderGame() {
+      var h = [];
+      h.push('<h1>MTG Kiro &mdash; Kindle</h1>');
+      for (var i = 0; i < state.players.length; i++) {
+        var pl = state.players[i];
+        var out = isOut(pl);
+        h.push('<div class="card' + (out ? ' out' : '') + '" id="card-' + i + '">');
+        h.push('<span class="outlabel" id="out-' + i + '"' + (out ? '' : ' style="display:none"') + '>OUT</span>');
+        h.push('<div class="name">' + esc(pl.name) + '</div>');
+        h.push('<div class="life" id="life-' + i + '">' + pl.life + '</div>');
+        h.push('<div class="liferow">');
+        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',-5)">&minus;5</button>');
+        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',-1)">&minus;1</button>');
+        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',1)">+1</button>');
+        h.push('<button type="button" class="btn big" onclick="adjLife(' + i + ',5)">+5</button>');
+        h.push('</div>');
+
+        // Commander damage panel (only meaningful with 2+ players)
+        h.push('<button type="button" class="btn block" onclick="toggleCmd(' + i + ')">'
+          + (state.openCmd === i ? 'Hide commander damage' : 'Commander damage') + '</button>');
+        if (state.openCmd === i) {
+          h.push('<div class="cmd">');
+          for (var s = 0; s < state.players.length; s++) {
+            if (s === i) continue;
+            var dmg = pl.cmd[s];
+            var lethal = dmg >= 21;
+            h.push('<div class="cmdrow">');
+            h.push('<span class="cmdname">from ' + esc(state.players[s].name) + '</span>');
+            h.push('<button type="button" class="btn" onclick="adjCmd(' + i + ',' + s + ',-1)">&minus;</button>');
+            h.push('<span class="cmdval' + (lethal ? ' lethal' : '') + '" id="cmd-' + i + '-' + s + '">' + dmg + '</span>');
+            h.push('<button type="button" class="btn" onclick="adjCmd(' + i + ',' + s + ',1)">+</button>');
+            h.push('<span class="lethaltag" id="leth-' + i + '-' + s + '"' + (lethal ? '' : ' style="display:none"') + '> 21+ LETHAL</span>');
+            h.push('</div>');
+          }
+          h.push('<div class="note">Commander damage also lowers that player\'s life.</div>');
+          h.push('</div>');
+        }
+        h.push('<div class="clear"></div>');
+        h.push('</div>');
+      }
+      h.push('<button type="button" class="btn block" onclick="newGame()">New game</button>');
+      document.getElementById('app').innerHTML = h.join('');
+    }
+
+    function updateOut(i) {
+      var pl = state.players[i];
+      var out = isOut(pl);
+      var card = document.getElementById('card-' + i);
+      var label = document.getElementById('out-' + i);
+      if (card) card.className = 'card' + (out ? ' out' : '');
+      if (label) label.style.display = out ? '' : 'none';
+    }
+
+    function adjLife(i, amt) {
+      state.players[i].life += amt;
+      var el = document.getElementById('life-' + i);
+      if (el) el.textContent = state.players[i].life;
+      updateOut(i);
+      save();
+    }
+
+    function adjCmd(target, source, amt) {
+      var pl = state.players[target];
+      var cur = pl.cmd[source];
+      var next = cur + amt;
+      if (next < 0) next = 0;
+      var actual = next - cur;         // mirror the main app: cmd damage lowers life
+      pl.cmd[source] = next;
+      pl.life -= actual;
+
+      var cell = document.getElementById('cmd-' + target + '-' + source);
+      if (cell) {
+        cell.textContent = next;
+        cell.className = 'cmdval' + (next >= 21 ? ' lethal' : '');
+      }
+      var leth = document.getElementById('leth-' + target + '-' + source);
+      if (leth) leth.style.display = next >= 21 ? '' : 'none';
+      var life = document.getElementById('life-' + target);
+      if (life) life.textContent = pl.life;
+      updateOut(target);
+      save();
+    }
+
+    function toggleCmd(i) {
+      state.openCmd = (state.openCmd === i) ? -1 : i;
+      save();
+      render();
+    }
+
+    function newGame() {
+      state.phase = 'setup';
+      state.openCmd = -1;
+      save();
+      render();
+    }
+
+    function render() {
+      if (state.phase === 'game' && state.players && state.players.length) renderGame();
+      else renderSetup();
+    }
+
+    // Expose handlers for inline onclick (older engines are happiest this way).
+    window.setCount = setCount; window.setLife = setLife; window.startGame = startGame;
+    window.adjLife = adjLife; window.adjCmd = adjCmd; window.toggleCmd = toggleCmd;
+    window.newGame = newGame;
+
+    load();
+    render();
+  </script>
+</body>
+</html>

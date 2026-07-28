@@ -53,6 +53,7 @@ const es = {
     myDecks: '🃏 Mis Mazos',
     logout: '🚪 Cerrar Sesión',
     login: '👤 Login',
+    kindleVersion: '📖 Versión Kindle (e-ink)',
   },
   login: {
     title: 'Iniciar Sesión',
@@ -311,6 +312,7 @@ const en: Translations = {
     myDecks: '🃏 My Decks',
     logout: '🚪 Log Out',
     login: '👤 Login',
+    kindleVersion: '📖 Kindle (e-ink) version',
   },
   login: {
     title: 'Sign In',
