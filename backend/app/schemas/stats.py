@@ -1,7 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-class GeneralStats(BaseModel):
+def to_camel(string: str) -> str:
+    """Convert snake_case to camelCase."""
+    parts = string.split("_")
+    return parts[0] + "".join(word.capitalize() for word in parts[1:])
+
+
+class CamelModel(BaseModel):
+    """Base model that serializes fields as camelCase."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class GeneralStats(CamelModel):
     """Schema for general user statistics."""
 
     total_games: int
@@ -12,7 +24,7 @@ class GeneralStats(BaseModel):
     eliminations_by_poison: int
 
 
-class DeckStats(BaseModel):
+class DeckStats(CamelModel):
     """Schema for per-deck statistics."""
 
     deck_id: str
@@ -23,7 +35,7 @@ class DeckStats(BaseModel):
     players: list[str]
 
 
-class RivalStats(BaseModel):
+class RivalStats(CamelModel):
     """Schema for per-rival statistics."""
 
     rival_name: str
@@ -32,7 +44,7 @@ class RivalStats(BaseModel):
     win_rate: float
 
 
-class GameLogPlayerEntry(BaseModel):
+class GameLogPlayerEntry(CamelModel):
     """Schema for a player entry within a game log."""
 
     name: str
@@ -40,7 +52,7 @@ class GameLogPlayerEntry(BaseModel):
     elimination_order: int | None = None
 
 
-class GameLogEntry(BaseModel):
+class GameLogEntry(CamelModel):
     """Schema for a single game log entry."""
 
     date: str

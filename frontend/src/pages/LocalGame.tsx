@@ -304,8 +304,25 @@ export default function LocalGame() {
 
               {/* Commander search for host if in commander format and no commander yet */}
               {room.config.format === 'commander' && room.players[0] && !room.players[0].commanderName && (
-                <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-3">
+                <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-3 space-y-2">
                   <p className="text-xs text-purple-300 mb-2">Elegí tu Commander:</p>
+                  {/* Option 1: Pick from saved decks */}
+                  {isAuthenticated && (
+                    <DeckSelector
+                      format={room.config.format}
+                      onSelect={(deck) => {
+                        if (deck.commanderName && room.players[0]) {
+                          updatePlayerCommander(room.players[0].id, {
+                            commanderName: deck.commanderName,
+                            commanderImage: deck.commanderImage,
+                            partnerName: deck.partnerName,
+                            partnerImage: deck.partnerImage,
+                          })
+                        }
+                      }}
+                    />
+                  )}
+                  {/* Option 2: Search manually */}
                   <CommanderSearch
                     value={newCommanderName}
                     onChange={(name, card?: ScryfallCard) => {
@@ -316,7 +333,6 @@ export default function LocalGame() {
                       }
                     }}
                     onSelect={(commander, partner) => {
-                      // Update the host player's commander
                       if (room.players[0]) {
                         updatePlayerCommander(room.players[0].id, {
                           commanderName: commander.name,
@@ -328,7 +344,7 @@ export default function LocalGame() {
                       setNewCommanderName('')
                       setNewCommanderImage('')
                     }}
-                    placeholder="Buscar tu Commander..."
+                    placeholder="O buscar Commander..."
                   />
                 </div>
               )}
