@@ -1,4 +1,4 @@
-# ⚔️ MTG Life Counter
+# ⚔️ MTG Kiro Life Counter
 Equipo 32
 Contador de vidas para Magic: The Gathering con sincronización en tiempo real entre dispositivos.
 
