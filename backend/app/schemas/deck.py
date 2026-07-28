@@ -1,4 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+
+def to_camel(string: str) -> str:
+    """Convert snake_case to camelCase."""
+    parts = string.split("_")
+    return parts[0] + "".join(word.capitalize() for word in parts[1:])
+
+
+class CamelModel(BaseModel):
+    """Base model that serializes fields as camelCase."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class DeckCreate(BaseModel):
@@ -18,7 +30,7 @@ class DeckUpdate(BaseModel):
     status: str  # "active" | "inactive"
 
 
-class DeckResponse(BaseModel):
+class DeckResponse(CamelModel):
     """Schema for deck API responses."""
 
     id: str

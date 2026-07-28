@@ -53,7 +53,7 @@ function DamageRow({ source, onAdjust }: DamageRowProps) {
           {source.name}
         </span>
         {source.playerName && (
-          <span className="text-xs text-gray-400 truncate">— {source.playerName}</span>
+          <span className="text-xs text-gray-400 truncate">{source.playerName}</span>
         )}
         {source.isPartner && (
           <span className="text-xs text-purple-400">Partner</span>
