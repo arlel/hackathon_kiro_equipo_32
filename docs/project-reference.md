@@ -5,7 +5,6 @@ This document contains the full technical reference for the MTG Life Counter pro
 ## Directory Structure
 
 ```
-/
 ├── frontend/                    # React SPA
 │   ├── src/
 │   │   ├── main.tsx            # App entry point (BrowserRouter wrapper)
