@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
 
@@ -20,7 +21,5 @@ class Deck(Base):
     partner_image = Column(String(500), nullable=True)
     format = Column(String(20), nullable=False)  # "commander" | "20vida" | "custom"
     status = Column(String(20), default="active")  # "active" | "inactive"
-    created_at = Column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_used_at = Column(DateTime(timezone=True), nullable=True)

@@ -35,9 +35,7 @@ async def list_decks(
 ) -> list[DeckResponse]:
     """List all decks for the authenticated user, ordered by creation date descending."""
     result = await db.execute(
-        select(Deck)
-        .where(Deck.user_id == current_user["id"])
-        .order_by(Deck.created_at.desc())
+        select(Deck).where(Deck.user_id == current_user["id"]).order_by(Deck.created_at.desc())
     )
     decks = result.scalars().all()
     return [_deck_to_response(deck) for deck in decks]

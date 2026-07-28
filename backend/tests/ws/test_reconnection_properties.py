@@ -12,7 +12,6 @@ from hypothesis import strategies as st
 
 from app.ws.room_manager import PlayerState, Room, RoomConfig, RoomManager
 
-
 # ---------------------------------------------------------------------------
 # Property 20: Reconexión restaura estado completo
 # For any player with state (life L, commander damage D, poison P, commander
@@ -49,9 +48,7 @@ class TestProperty20ReconnectionRestoresState:
         **Validates: Requirements 3.6**
         """
         manager = RoomManager()
-        room = Room(
-            code="ABC123", config=RoomConfig(format="commander", starting_life=40)
-        )
+        room = Room(code="ABC123", config=RoomConfig(format="commander", starting_life=40))
 
         # Create a player with specific state
         ws_mock = MagicMock()
@@ -107,9 +104,7 @@ class TestProperty20ReconnectionRestoresState:
         **Validates: Requirements 3.6**
         """
         manager = RoomManager()
-        room = Room(
-            code="ABC123", config=RoomConfig(format="commander", starting_life=40)
-        )
+        room = Room(code="ABC123", config=RoomConfig(format="commander", starting_life=40))
 
         # Create a player with specific state
         ws_mock = MagicMock()
@@ -126,9 +121,7 @@ class TestProperty20ReconnectionRestoresState:
 
         # Simulate disconnect with expired timestamp (31 minutes ago)
         manager.remove_player(room, "p1")
-        room.players["p1"].disconnected_at = datetime.now(timezone.utc) - timedelta(
-            minutes=31
-        )
+        room.players["p1"].disconnected_at = datetime.now(timezone.utc) - timedelta(minutes=31)
 
         # Try to reconnect
         new_ws_mock = MagicMock()
@@ -136,8 +129,6 @@ class TestProperty20ReconnectionRestoresState:
 
         # State should be reset (new player with starting life)
         restored = room.players["p1"]
-        assert (
-            restored.life == room.starting_life
-        )  # Reset to starting life, not old life
+        assert restored.life == room.starting_life  # Reset to starting life, not old life
         assert restored.poison_counters == 0  # Reset
         assert restored.is_connected is True

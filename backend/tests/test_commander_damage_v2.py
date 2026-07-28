@@ -5,7 +5,7 @@ Validates Requirements: 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9
 
 import pytest
 
-from app.ws.room_manager import RoomManager, Room, RoomConfig, PlayerState
+from app.ws.room_manager import PlayerState, Room, RoomConfig, RoomManager
 
 
 @pytest.fixture
@@ -49,9 +49,7 @@ class TestIncrementCommanderDamage:
         assert room.players["player2"].commander_damage["player1"] == 10
         assert room.players["player2"].life == 30
 
-    def test_multiple_increments_accumulate(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_multiple_increments_accumulate(self, room_manager: RoomManager, room: Room) -> None:
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 5)
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 3)
 
@@ -83,9 +81,7 @@ class TestDecrementCommanderDamage:
 class TestClampToZero:
     """Requirement 6.8: Damage cannot go below 0; life not modified if clamped."""
 
-    def test_decrement_below_zero_clamps(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_decrement_below_zero_clamps(self, room_manager: RoomManager, room: Room) -> None:
         # Start with 3 damage
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 3)
         # Try to decrement by 5 (would go to -2)
@@ -95,18 +91,14 @@ class TestClampToZero:
         # Life: 40 - 3 (from increment) + 3 (actual decrement clamped) = 40
         assert room.players["player2"].life == 40
 
-    def test_decrement_from_zero_does_nothing(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_decrement_from_zero_does_nothing(self, room_manager: RoomManager, room: Room) -> None:
         # No damage applied yet (0)
         room_manager.apply_commander_damage_v2(room, "player1", "player2", -1)
 
         assert room.players["player2"].commander_damage["player1"] == 0
         assert room.players["player2"].life == 40
 
-    def test_large_decrement_clamps_to_zero(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_large_decrement_clamps_to_zero(self, room_manager: RoomManager, room: Room) -> None:
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 2)
         room_manager.apply_commander_damage_v2(room, "player1", "player2", -100)
 
@@ -130,9 +122,7 @@ class TestPartnerSupport:
         assert room.players["player2"].commander_damage["player1:partner"] == 3
         assert room.players["player2"].life == 32  # 40 - 5 - 3
 
-    def test_decrement_partner_independently(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_decrement_partner_independently(self, room_manager: RoomManager, room: Room) -> None:
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 10)
         room_manager.apply_commander_damage_v2(room, "player1:partner", "player2", 7)
         room_manager.apply_commander_damage_v2(room, "player1:partner", "player2", -3)
@@ -145,9 +135,7 @@ class TestPartnerSupport:
 class TestTargetNotInRoom:
     """If target player does not exist, do nothing."""
 
-    def test_nonexistent_target_is_ignored(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_nonexistent_target_is_ignored(self, room_manager: RoomManager, room: Room) -> None:
         room_manager.apply_commander_damage_v2(room, "player1", "nonexistent", 5)
 
         # No crash, no state changes
@@ -158,17 +146,13 @@ class TestTargetNotInRoom:
 class TestLifeAutomaticAdjustment:
     """Requirement 6.9: Server adjusts life automatically with damage."""
 
-    def test_life_decreases_on_damage_increase(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_life_decreases_on_damage_increase(self, room_manager: RoomManager, room: Room) -> None:
         initial_life = room.players["player2"].life
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 7)
 
         assert room.players["player2"].life == initial_life - 7
 
-    def test_life_increases_on_damage_decrease(
-        self, room_manager: RoomManager, room: Room
-    ) -> None:
+    def test_life_increases_on_damage_decrease(self, room_manager: RoomManager, room: Room) -> None:
         room_manager.apply_commander_damage_v2(room, "player1", "player2", 10)
         life_after_damage = room.players["player2"].life
         room_manager.apply_commander_damage_v2(room, "player1", "player2", -4)

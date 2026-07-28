@@ -1,5 +1,5 @@
-from app.models.user import User
-from app.models.game import Game, GamePlayer
 from app.models.deck import Deck
+from app.models.game import Game, GamePlayer
+from app.models.user import User
 
-__all__ = ["User", "Game", "GamePlayer", "Deck"]
+__all__ = ["Deck", "Game", "GamePlayer", "User"]

@@ -31,15 +31,11 @@ def _add_player(room: Room, player_id: str, life: int = 40) -> PlayerState:
 class TestCheckElimination:
     """Tests for check_elimination method."""
 
-    def test_returns_none_for_nonexistent_player(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_returns_none_for_nonexistent_player(self, manager: RoomManager, room: Room) -> None:
         result = manager.check_elimination(room, "nonexistent")
         assert result is None
 
-    def test_returns_none_when_already_eliminated(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_returns_none_when_already_eliminated(self, manager: RoomManager, room: Room) -> None:
         player = _add_player(room, "p1", life=0)
         player.elimination_cause = "daño normal"
         player.elimination_order = 1
@@ -67,9 +63,7 @@ class TestCheckElimination:
         result = manager.check_elimination(room, "p1")
         assert result == "veneno"
 
-    def test_detects_commander_damage_elimination(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_detects_commander_damage_elimination(self, manager: RoomManager, room: Room) -> None:
         player = _add_player(room, "p1", life=20)
         player.commander_damage = {"enemy1": 21}
         result = manager.check_elimination(room, "p1")
@@ -77,33 +71,25 @@ class TestCheckElimination:
         assert player.elimination_cause == "daño de comandante"
         assert player.elimination_order == 1
 
-    def test_detects_commander_damage_over_21(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_detects_commander_damage_over_21(self, manager: RoomManager, room: Room) -> None:
         player = _add_player(room, "p1", life=20)
         player.commander_damage = {"enemy1": 25}
         result = manager.check_elimination(room, "p1")
         assert result == "daño de comandante"
 
-    def test_detects_life_zero_elimination(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_detects_life_zero_elimination(self, manager: RoomManager, room: Room) -> None:
         player = _add_player(room, "p1", life=0)
         result = manager.check_elimination(room, "p1")
         assert result == "daño normal"
         assert player.elimination_cause == "daño normal"
         assert player.elimination_order == 1
 
-    def test_detects_negative_life_elimination(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_detects_negative_life_elimination(self, manager: RoomManager, room: Room) -> None:
         _ = _add_player(room, "p1", life=-5)
         result = manager.check_elimination(room, "p1")
         assert result == "daño normal"
 
-    def test_poison_priority_over_commander_damage(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_poison_priority_over_commander_damage(self, manager: RoomManager, room: Room) -> None:
         """Poison has highest priority over commander damage."""
         player = _add_player(room, "p1", life=20)
         player.poison_counters = 10
@@ -118,18 +104,14 @@ class TestCheckElimination:
         result = manager.check_elimination(room, "p1")
         assert result == "veneno"
 
-    def test_commander_damage_priority_over_life(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_commander_damage_priority_over_life(self, manager: RoomManager, room: Room) -> None:
         """Commander damage has priority over life <= 0."""
         player = _add_player(room, "p1", life=0)
         player.commander_damage = {"enemy1": 21}
         result = manager.check_elimination(room, "p1")
         assert result == "daño de comandante"
 
-    def test_increments_elimination_counter(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_increments_elimination_counter(self, manager: RoomManager, room: Room) -> None:
         _add_player(room, "p1", life=0)
         _add_player(room, "p2", life=0)
         manager.check_elimination(room, "p1")
@@ -137,9 +119,7 @@ class TestCheckElimination:
         manager.check_elimination(room, "p2")
         assert room.elimination_counter == 2
 
-    def test_sequential_elimination_order(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_sequential_elimination_order(self, manager: RoomManager, room: Room) -> None:
         _add_player(room, "p1", life=0)
         _add_player(room, "p2", life=0)
         _add_player(room, "p3", life=0)
@@ -150,9 +130,7 @@ class TestCheckElimination:
         assert room.players["p2"].elimination_order == 2
         assert room.players["p3"].elimination_order == 3
 
-    def test_commander_damage_checks_all_sources(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_commander_damage_checks_all_sources(self, manager: RoomManager, room: Room) -> None:
         """Any single commander source at 21+ triggers elimination."""
         player = _add_player(room, "p1", life=20)
         player.commander_damage = {"enemy1": 10, "enemy2": 21}
@@ -163,15 +141,11 @@ class TestCheckElimination:
 class TestRevivePlayer:
     """Tests for revive_player method."""
 
-    def test_returns_for_nonexistent_player(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_returns_for_nonexistent_player(self, manager: RoomManager, room: Room) -> None:
         # Should not raise
         manager.revive_player(room, "nonexistent")
 
-    def test_returns_for_non_eliminated_player(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_returns_for_non_eliminated_player(self, manager: RoomManager, room: Room) -> None:
         _add_player(room, "p1", life=20)
         # Should not raise or modify anything
         manager.revive_player(room, "p1")
@@ -190,9 +164,7 @@ class TestRevivePlayer:
         assert player.elimination_order is None
         assert room.elimination_counter == 0
 
-    def test_adjusts_later_elimination_orders(
-        self, manager: RoomManager, room: Room
-    ) -> None:
+    def test_adjusts_later_elimination_orders(self, manager: RoomManager, room: Room) -> None:
         """When player with order 1 is revived, players with orders 2 and 3 shift down."""
         p1 = _add_player(room, "p1", life=5)
         p2 = _add_player(room, "p2", life=0)

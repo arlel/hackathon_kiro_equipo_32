@@ -8,7 +8,6 @@ from hypothesis import strategies as st
 
 from app.ws.room_manager import PlayerState, Room, RoomConfig, RoomManager
 
-
 # ---------------------------------------------------------------------------
 # Property 2: Vida inicial según formato
 # For any valid format, when a player joins a room, their initial life equals
@@ -30,13 +29,9 @@ class TestProperty2StartingLifeByFormat:
         **Validates: Requirements 1.4, 4.9, 11.2**
         """
         manager = RoomManager()
-        room = manager.get_or_create_room(
-            "CMD001", format="commander", starting_life=40
-        )
+        room = manager.get_or_create_room("CMD001", format="commander", starting_life=40)
 
-        player = PlayerState(
-            id="p1", username="test", life=room.starting_life, websocket=None
-        )
+        player = PlayerState(id="p1", username="test", life=room.starting_life, websocket=None)
         room.players["p1"] = player
 
         assert player.life == 40
@@ -53,9 +48,7 @@ class TestProperty2StartingLifeByFormat:
         manager = RoomManager()
         room = manager.get_or_create_room("VDA001", format="20vida", starting_life=20)
 
-        player = PlayerState(
-            id="p1", username="test", life=room.starting_life, websocket=None
-        )
+        player = PlayerState(id="p1", username="test", life=room.starting_life, websocket=None)
         room.players["p1"] = player
 
         assert player.life == 20
@@ -70,13 +63,9 @@ class TestProperty2StartingLifeByFormat:
         **Validates: Requirements 1.4, 4.9, 11.2**
         """
         manager = RoomManager()
-        room = manager.get_or_create_room(
-            "CUS001", format="custom", starting_life=custom_life
-        )
+        room = manager.get_or_create_room("CUS001", format="custom", starting_life=custom_life)
 
-        player = PlayerState(
-            id="p1", username="test", life=room.starting_life, websocket=None
-        )
+        player = PlayerState(id="p1", username="test", life=room.starting_life, websocket=None)
         room.players["p1"] = player
 
         assert player.life == custom_life
@@ -101,9 +90,7 @@ class TestProperty2StartingLifeByFormat:
             "GEN001", format=format_choice, starting_life=starting_life
         )
 
-        player = PlayerState(
-            id="p1", username="test", life=room.starting_life, websocket=None
-        )
+        player = PlayerState(id="p1", username="test", life=room.starting_life, websocket=None)
         room.players["p1"] = player
 
         assert player.life == starting_life
@@ -129,9 +116,7 @@ class TestProperty3MaxPlayersPerRoom:
         **Validates: Requirements 1.5, 3.8**
         """
         manager = RoomManager()
-        room = manager.get_or_create_room(
-            "MAX001", format="commander", starting_life=40
-        )
+        room = manager.get_or_create_room("MAX001", format="commander", starting_life=40)
 
         for i in range(num_players):
             connected_count = sum(1 for p in room.players.values() if p.is_connected)
@@ -174,9 +159,7 @@ class TestProperty6LifeArithmetic:
             code="LIFE01",
             config=RoomConfig(format="commander", starting_life=40),
         )
-        player = PlayerState(
-            id="p1", username="test", life=initial_life, websocket=None
-        )
+        player = PlayerState(id="p1", username="test", life=initial_life, websocket=None)
         room.players["p1"] = player
 
         manager.adjust_life(room, "p1", amount)
@@ -200,9 +183,7 @@ class TestProperty6LifeArithmetic:
             code="LIFE02",
             config=RoomConfig(format="commander", starting_life=40),
         )
-        player = PlayerState(
-            id="p1", username="test", life=initial_life, websocket=None
-        )
+        player = PlayerState(id="p1", username="test", life=initial_life, websocket=None)
         room.players["p1"] = player
 
         manager.adjust_life(room, "p1", amount)
@@ -245,9 +226,7 @@ class TestProperty7AdjustLifeNonexistentPlayer:
 
         # Add multiple players with known lives
         for i, life in enumerate(player_lives):
-            player = PlayerState(
-                id=f"p{i}", username=f"Player{i}", life=life, websocket=None
-            )
+            player = PlayerState(id=f"p{i}", username=f"Player{i}", life=life, websocket=None)
             room.players[f"p{i}"] = player
 
         # Capture original lives

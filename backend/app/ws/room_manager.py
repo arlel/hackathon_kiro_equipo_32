@@ -31,9 +31,7 @@ class PlayerState:
     partner_image: str = ""
     commander_damage: dict[str, int] = field(default_factory=dict)
     is_connected: bool = True
-    elimination_cause: str | None = (
-        None  # "daño normal" | "daño de comandante" | "veneno"
-    )
+    elimination_cause: str | None = None  # "daño normal" | "daño de comandante" | "veneno"
     elimination_order: int | None = None
     websocket: WebSocket | None = None
     deck_id: str | None = None
@@ -112,9 +110,7 @@ class RoomManager:
             # Reconnection — check 30-minute window
             player = room.players[player_id]
             if player.disconnected_at:
-                elapsed = (
-                    datetime.now(timezone.utc) - player.disconnected_at
-                ).total_seconds()
+                elapsed = (datetime.now(timezone.utc) - player.disconnected_at).total_seconds()
                 if elapsed > 1800:  # 30 minutes
                     # Expired reconnection — remove old state, treat as new player
                     del room.players[player_id]
@@ -198,9 +194,7 @@ class RoomManager:
         player.life -= actual_change
         player.commander_damage[commander_source_id] = new_value
 
-    def apply_commander_damage(
-        self, room: Room, from_id: str, to_id: str, amount: int
-    ) -> None:
+    def apply_commander_damage(self, room: Room, from_id: str, to_id: str, amount: int) -> None:
         """Apply commander damage from one player to another (legacy method)."""
         if to_id in room.players and from_id in room.players:
             player = room.players[to_id]

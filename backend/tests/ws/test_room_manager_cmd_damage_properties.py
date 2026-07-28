@@ -5,10 +5,10 @@ Uses hypothesis for property-based testing with minimum 100 iterations.
 Validates: Requirements 6.3, 6.4, 6.8, 6.9, 6.10, 17.1, 17.2, 17.3
 """
 
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-from app.ws.room_manager import RoomManager, Room, RoomConfig, PlayerState
+from app.ws.room_manager import PlayerState, Room, RoomConfig, RoomManager
 
 
 # Property 9: Daño de comandante reduce vida automáticamente
@@ -18,18 +18,14 @@ from app.ws.room_manager import RoomManager, Room, RoomConfig, PlayerState
     initial_life=st.integers(min_value=-100, max_value=1000),
     increment=st.integers(min_value=1, max_value=100),
 )
-def test_property_9_commander_damage_reduces_life(
-    initial_life: int, increment: int
-) -> None:
+def test_property_9_commander_damage_reduces_life(initial_life: int, increment: int) -> None:
     """Feature: mtg-life-counter, Property 9: Daño de comandante reduce vida automáticamente
 
     **Validates: Requirements 6.3, 6.9**
     """
     manager = RoomManager()
     room = Room(code="ABC123", config=RoomConfig(format="commander", starting_life=40))
-    player = PlayerState(
-        id="target", username="Target", life=initial_life, websocket=None
-    )
+    player = PlayerState(id="target", username="Target", life=initial_life, websocket=None)
     room.players["target"] = player
 
     manager.apply_commander_damage_v2(room, "source_cmd", "target", increment)
@@ -57,9 +53,7 @@ def test_property_10_commander_damage_decrement_increases_life(
 
     manager = RoomManager()
     room = Room(code="ABC123", config=RoomConfig(format="commander", starting_life=40))
-    player = PlayerState(
-        id="target", username="Target", life=initial_life, websocket=None
-    )
+    player = PlayerState(id="target", username="Target", life=initial_life, websocket=None)
     player.commander_damage["source_cmd"] = initial_damage
     room.players["target"] = player
 
@@ -105,9 +99,7 @@ def test_property_11_commander_damage_cannot_be_negative(
     damage=st.integers(min_value=21, max_value=100),
     life=st.integers(min_value=1, max_value=1000),
 )
-def test_property_12_commander_damage_elimination_detection(
-    damage: int, life: int
-) -> None:
+def test_property_12_commander_damage_elimination_detection(damage: int, life: int) -> None:
     """Feature: mtg-life-counter, Property 12: Detección de eliminación por daño de comandante
 
     **Validates: Requirements 6.10, 17.1, 17.2, 17.3**

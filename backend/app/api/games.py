@@ -3,25 +3,23 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
-from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.database import get_db
 from app.core.stats import (
+    get_game_log,
     get_general_stats,
     get_stats_by_deck,
     get_stats_by_rival,
-    get_game_log,
 )
 from app.models.game import Game, GamePlayer
-from app.schemas.stats import GeneralStats, DeckStats, RivalStats, GameLogEntry
 from app.schemas.game import GameEditRequest
+from app.schemas.stats import DeckStats, GameLogEntry, GeneralStats, RivalStats
 
 router = APIRouter(prefix="/games", tags=["games"])
 
-
-# --- Schema for saving local games ---
 
 class SaveGamePlayerRequest(BaseModel):
     player_name: str
@@ -76,7 +74,8 @@ async def save_game(
 
     for p_data in body.players:
         # Associate user_id with the first player (host) in local games
-        player_user_id = uuid.UUID(user_id) if p_data.player_name == body.players[0].player_name else None
+        is_host = p_data.player_name == body.players[0].player_name
+        player_user_id = uuid.UUID(user_id) if is_host else None
         game_player = GamePlayer(
             id=uuid.uuid4(),
             game_id=game.id,
@@ -107,14 +106,10 @@ async def get_history(
     user_uuid = uuid.UUID(current_user["id"])
 
     # Get games where the user participated as player OR is the creator (local games)
-    result = await db.execute(
-        select(GamePlayer.game_id).where(GamePlayer.user_id == user_uuid)
-    )
+    result = await db.execute(select(GamePlayer.game_id).where(GamePlayer.user_id == user_uuid))
     player_game_ids = {row[0] for row in result.all()}
 
-    result = await db.execute(
-        select(Game.id).where(Game.creator_id == user_uuid)
-    )
+    result = await db.execute(select(Game.id).where(Game.creator_id == user_uuid))
     creator_game_ids = {row[0] for row in result.all()}
 
     game_ids = list(player_game_ids | creator_game_ids)
@@ -131,9 +126,7 @@ async def get_history(
     response = []
     for game in games:
         # Get players for this game
-        result = await db.execute(
-            select(GamePlayer).where(GamePlayer.game_id == game.id)
-        )
+        result = await db.execute(select(GamePlayer).where(GamePlayer.game_id == game.id))
         players = result.scalars().all()
 
         response.append(

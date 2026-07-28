@@ -6,7 +6,7 @@ Uses hypothesis for property-based testing with minimum 100 iterations.
 import re
 import string
 
-from hypothesis import given, settings, assume
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z0-9]{6}$")
@@ -85,9 +85,7 @@ def test_property_13_win_rate_calculation(wins: int, total: int) -> None:
 
 @settings(max_examples=100)
 @given(
-    username=st.text(
-        min_size=3, max_size=50, alphabet=string.ascii_letters + string.digits
-    ),
+    username=st.text(min_size=3, max_size=50, alphabet=string.ascii_letters + string.digits),
     password=st.text(min_size=6, max_size=100),
 )
 def test_property_22_valid_registration(username: str, password: str) -> None:

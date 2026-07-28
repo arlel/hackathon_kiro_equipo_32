@@ -6,7 +6,7 @@ Uses hypothesis for property-based testing with minimum 100 iterations.
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from app.ws.room_manager import RoomManager, Room, RoomConfig, PlayerState
+from app.ws.room_manager import PlayerState, Room, RoomConfig, RoomManager
 
 
 # Property 15: Aritmética de veneno y clamping a 0

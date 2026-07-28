@@ -2,7 +2,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.database import async_session
 from app.models.game import Game, GamePlayer
@@ -35,9 +35,7 @@ async def websocket_endpoint(
 ):
     await websocket.accept()
 
-    actual_starting_life = (
-        starting_life if starting_life > 0 else FORMAT_LIFE.get(format, 40)
-    )
+    actual_starting_life = starting_life if starting_life > 0 else FORMAT_LIFE.get(format, 40)
     room = room_manager.get_or_create_room(
         room_code,
         format,
@@ -104,9 +102,7 @@ async def websocket_endpoint(
                 commander_source_id = message.get("commanderSourceId")
                 to_id = message.get("toId")
                 amount = message.get("amount", 0)
-                room_manager.apply_commander_damage_v2(
-                    room, commander_source_id, to_id, amount
-                )
+                room_manager.apply_commander_damage_v2(room, commander_source_id, to_id, amount)
                 # Check elimination after commander damage
                 if to_id:
                     room_manager.check_elimination(room, to_id)
@@ -181,9 +177,7 @@ async def websocket_endpoint(
                                 partner_name=p_data["partner_name"],
                                 final_life=p_data["final_life"],
                                 final_poison=p_data["final_poison"],
-                                commander_damage_received=p_data[
-                                    "commander_damage_received"
-                                ],
+                                commander_damage_received=p_data["commander_damage_received"],
                                 is_winner=p_data["is_winner"],
                                 elimination_cause=p_data["elimination_cause"],
                                 elimination_order=p_data["elimination_order"],
@@ -194,9 +188,7 @@ async def websocket_endpoint(
                 except Exception as e:
                     import logging
 
-                    logging.getLogger(__name__).warning(
-                        "Failed to persist game to database: %s", e
-                    )
+                    logging.getLogger(__name__).warning("Failed to persist game to database: %s", e)
 
                 # Broadcast game_ended message to all players
                 winner_name = (

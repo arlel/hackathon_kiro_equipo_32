@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database import Base
 
@@ -21,9 +22,7 @@ class Game(Base):
     winner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     creator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     is_local = Column(Boolean, default=False)
-    started_at = Column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     ended_at = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True)
 

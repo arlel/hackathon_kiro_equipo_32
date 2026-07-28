@@ -5,7 +5,7 @@ multi-client room interactions, state broadcasting, and room capacity limits.
 """
 
 import json
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from starlette.testclient import TestClient
@@ -73,9 +73,7 @@ class TestTwoClientsConnect:
     def test_players_have_correct_starting_life(self) -> None:
         client = TestClient(app)
 
-        with client.websocket_connect(
-            _ws_url("ROOM02", "p1", "Alice", format="commander")
-        ) as ws1:
+        with client.websocket_connect(_ws_url("ROOM02", "p1", "Alice", format="commander")) as ws1:
             msg = json.loads(ws1.receive_text())
             assert msg["players"][0]["life"] == 40
 
@@ -375,9 +373,7 @@ class TestRoomFullRejection:
         try:
             # Connect 12 players
             for i in range(12):
-                ws = client.websocket_connect(
-                    _ws_url(room_code, f"player{i}", f"Player{i}")
-                )
+                ws = client.websocket_connect(_ws_url(room_code, f"player{i}", f"Player{i}"))
                 ws_ctx = ws.__enter__()
                 websockets.append((ws, ws_ctx))
                 # Consume initial state broadcasts for all connected clients
@@ -387,9 +383,7 @@ class TestRoomFullRejection:
                     prev_ws.receive_text()
 
             # 13th client connects, receives error message, then server closes
-            with client.websocket_connect(
-                _ws_url(room_code, "player12", "Player12")
-            ) as ws13:
+            with client.websocket_connect(_ws_url(room_code, "player12", "Player12")) as ws13:
                 # Server sends error message before closing
                 msg = json.loads(ws13.receive_text())
                 assert msg["type"] == "error"

@@ -6,16 +6,16 @@ and game log generation.
 
 from uuid import UUID
 
-from sqlalchemy import select, and_
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.game import Game, GamePlayer
 from app.schemas.stats import (
-    GeneralStats,
     DeckStats,
-    RivalStats,
     GameLogEntry,
     GameLogPlayerEntry,
+    GeneralStats,
+    RivalStats,
 )
 
 
@@ -33,7 +33,7 @@ async def get_general_stats(session: AsyncSession, user_id: UUID) -> GeneralStat
             and_(
                 GamePlayer.user_id == user_id,
                 Game.ended_at.isnot(None),
-                Game.is_active == False,  # noqa: E712
+                Game.is_active == False,
             )
         )
     )
@@ -45,15 +45,11 @@ async def get_general_stats(session: AsyncSession, user_id: UUID) -> GeneralStat
     win_rate = round((wins / total_games) * 100, 1) if total_games > 0 else 0.0
 
     # Elimination breakdown (eliminations RECEIVED by this user)
-    eliminations_by_normal = sum(
-        1 for gp in game_players if gp.elimination_cause == "daño normal"
-    )
+    eliminations_by_normal = sum(1 for gp in game_players if gp.elimination_cause == "daño normal")
     eliminations_by_commander = sum(
         1 for gp in game_players if gp.elimination_cause == "daño de comandante"
     )
-    eliminations_by_poison = sum(
-        1 for gp in game_players if gp.elimination_cause == "veneno"
-    )
+    eliminations_by_poison = sum(1 for gp in game_players if gp.elimination_cause == "veneno")
 
     return GeneralStats(
         total_games=total_games,
@@ -80,7 +76,7 @@ async def get_stats_by_deck(session: AsyncSession, user_id: UUID) -> list[DeckSt
                 GamePlayer.user_id == user_id,
                 GamePlayer.deck_id.isnot(None),
                 Game.ended_at.isnot(None),
-                Game.is_active == False,  # noqa: E712
+                Game.is_active == False,
             )
         )
     )
@@ -150,7 +146,7 @@ async def get_stats_by_rival(session: AsyncSession, user_id: UUID) -> list[Rival
             and_(
                 GamePlayer.user_id == user_id,
                 Game.ended_at.isnot(None),
-                Game.is_active == False,  # noqa: E712
+                Game.is_active == False,
             )
         )
     )
@@ -222,7 +218,7 @@ async def get_game_log(session: AsyncSession, user_id: UUID) -> list[GameLogEntr
             and_(
                 GamePlayer.user_id == user_id,
                 Game.ended_at.isnot(None),
-                Game.is_active == False,  # noqa: E712
+                Game.is_active == False,
             )
         )
     )
@@ -233,9 +229,7 @@ async def get_game_log(session: AsyncSession, user_id: UUID) -> list[GameLogEntr
         return []
 
     # Get all games ordered by end date descending
-    games_stmt = (
-        select(Game).where(Game.id.in_(user_game_ids)).order_by(Game.ended_at.desc())
-    )
+    games_stmt = select(Game).where(Game.id.in_(user_game_ids)).order_by(Game.ended_at.desc())
     games_result = await session.execute(games_stmt)
     games = games_result.scalars().all()
 
@@ -271,4 +265,3 @@ async def recalculate_affected_stats(session: AsyncSession, game_id: UUID) -> No
     Currently a no-op since stats are calculated on-demand.
     Future optimization: if caching is added, invalidate cache here.
     """
-    pass

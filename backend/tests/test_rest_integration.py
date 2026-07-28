@@ -15,7 +15,6 @@ from app.core.auth import create_access_token, get_current_user
 from app.core.database import get_db
 from app.main import app
 
-
 # ---------------------------------------------------------------------------
 # Fixtures and helpers
 # ---------------------------------------------------------------------------
@@ -88,9 +87,7 @@ def mock_current_user() -> dict:
 class TestRegister:
     """Test user registration endpoint."""
 
-    def test_register_new_user_returns_201(
-        self, client: TestClient, mock_db: AsyncMock
-    ) -> None:
+    def test_register_new_user_returns_201(self, client: TestClient, mock_db: AsyncMock) -> None:
         """Register a new user with valid data and expect 201."""
         # Mock: no existing user found
         mock_result = MagicMock()
@@ -371,9 +368,7 @@ class TestEditGame:
         mock_participation_result = MagicMock()
         mock_participation_result.scalar_one_or_none.return_value = None
 
-        mock_db.execute = AsyncMock(
-            side_effect=[mock_game_result, mock_participation_result]
-        )
+        mock_db.execute = AsyncMock(side_effect=[mock_game_result, mock_participation_result])
 
         response = client.put(
             f"/api/games/{game_id}/edit?player_name=rival1",
@@ -478,9 +473,7 @@ class TestEditGame:
 class TestFullFlow:
     """Test the complete auth → create → read flow."""
 
-    def test_register_login_create_deck_flow(
-        self, client: TestClient, mock_db: AsyncMock
-    ) -> None:
+    def test_register_login_create_deck_flow(self, client: TestClient, mock_db: AsyncMock) -> None:
         """Complete flow: register → login → create deck."""
         # --- Step 1: Register ---
         mock_result_no_user = MagicMock()
