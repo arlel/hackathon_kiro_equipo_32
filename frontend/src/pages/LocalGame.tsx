@@ -13,7 +13,7 @@ import CommanderSearch from '@/components/CommanderSearch'
 import DeckSelector from '@/components/DeckSelector'
 import RoomSettings from '@/components/RoomSettings'
 import type { ScryfallCard } from '@/services/scryfall'
-import { getCardImageUrl } from '@/services/scryfall'
+import { getCardImageUrl, searchCommanders } from '@/services/scryfall'
 
 type Phase = 'config' | 'players' | 'playing'
 
@@ -310,13 +310,36 @@ export default function LocalGame() {
                   {isAuthenticated && (
                     <DeckSelector
                       format={room.config.format}
-                      onSelect={(deck) => {
-                        if (deck.commanderName && room.players[0]) {
+                      onSelect={async (deck) => {
+                        if (!room.players[0]) return
+                        if (deck.commanderName) {
+                          // Deck selected — assign commander
+                          if (deck.commanderImage) {
+                            updatePlayerCommander(room.players[0].id, {
+                              commanderName: deck.commanderName,
+                              commanderImage: deck.commanderImage,
+                              partnerName: deck.partnerName,
+                              partnerImage: deck.partnerImage,
+                            })
+                          } else {
+                            // Search Scryfall for the commander image
+                            const results = await searchCommanders(deck.commanderName)
+                            const card = results.find(c => c.name === deck.commanderName) || results[0]
+                            const artUrl = card ? getCardImageUrl(card, 'art_crop') : ''
+                            updatePlayerCommander(room.players[0].id, {
+                              commanderName: deck.commanderName,
+                              commanderImage: artUrl || undefined,
+                              partnerName: deck.partnerName,
+                              partnerImage: deck.partnerImage,
+                            })
+                          }
+                        } else {
+                          // "Sin mazo" — clear commander so user can search manually
                           updatePlayerCommander(room.players[0].id, {
-                            commanderName: deck.commanderName,
-                            commanderImage: deck.commanderImage,
-                            partnerName: deck.partnerName,
-                            partnerImage: deck.partnerImage,
+                            commanderName: undefined,
+                            commanderImage: undefined,
+                            partnerName: undefined,
+                            partnerImage: undefined,
                           })
                         }
                       }}
@@ -487,8 +510,8 @@ export default function LocalGame() {
 
 
 
-    const buildDamageSources = (player: Player): { id: string; name: string; damage: number; isPartner?: boolean }[] => {
-      const sources: { id: string; name: string; damage: number; isPartner?: boolean }[] = []
+    const buildDamageSources = (player: Player): { id: string; name: string; playerName?: string; image?: string; damage: number; isPartner?: boolean }[] => {
+      const sources: { id: string; name: string; playerName?: string; image?: string; damage: number; isPartner?: boolean }[] = []
       for (const other of room.players) {
         if (other.id === player.id) continue
         // Main commander
@@ -496,6 +519,8 @@ export default function LocalGame() {
         sources.push({
           id: mainId,
           name: other.commanderName || other.username,
+          playerName: other.commanderName ? other.username : undefined,
+          image: other.commanderImage,
           damage: player.commanderDamage[mainId] || 0,
         })
         // Partner (if any)
@@ -504,6 +529,8 @@ export default function LocalGame() {
           sources.push({
             id: partnerId,
             name: other.partnerName,
+            playerName: other.username,
+            image: other.partnerImage,
             damage: player.commanderDamage[partnerId] || 0,
             isPartner: true,
           })

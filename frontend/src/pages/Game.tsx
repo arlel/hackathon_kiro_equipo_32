@@ -303,7 +303,7 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
 
   // Build commander damage sources for a player
   const getCmdDamageSources = (player: Player) => {
-    const sources: { id: string; name: string; damage: number; isPartner?: boolean }[] = []
+    const sources: { id: string; name: string; playerName?: string; image?: string; damage: number; isPartner?: boolean }[] = []
     for (const other of players) {
       if (other.id === player.id) continue
       // Main commander
@@ -311,6 +311,8 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
       sources.push({
         id: other.id,
         name: other.commanderName || other.username,
+        playerName: other.commanderName ? other.username : undefined,
+        image: other.commanderImage,
         damage: mainDamage,
       })
       // Partner (if exists)
@@ -320,6 +322,8 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
         sources.push({
           id: partnerId,
           name: other.partnerName,
+          playerName: other.username,
+          image: other.partnerImage,
           damage: partnerDamage,
           isPartner: true,
         })

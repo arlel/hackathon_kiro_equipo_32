@@ -3,6 +3,8 @@ import { useLongPress } from '@/hooks/useLongPress'
 interface DamageSource {
   id: string
   name: string
+  playerName?: string
+  image?: string
   damage: number
   isPartner?: boolean
 }
@@ -32,22 +34,33 @@ function DamageRow({ source, onAdjust }: DamageRowProps) {
 
   return (
     <div
-      className={`flex items-center justify-between rounded-lg px-3 py-2 ${
-        isLethal
-          ? 'bg-red-900/50 border border-red-500'
-          : 'bg-gray-800'
+      className={`relative flex items-center justify-between rounded-lg px-3 py-2 overflow-hidden ${
+        isLethal ? 'border border-red-500' : 'bg-gray-800'
       }`}
     >
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm text-gray-200 truncate">
+      {/* Background art (subtle) */}
+      {source.image && (
+        <div className="absolute inset-0">
+          <img src={source.image} alt="" className="w-full h-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-black/60" />
+        </div>
+      )}
+      {!source.image && !isLethal && <div className="absolute inset-0 bg-gray-800" />}
+      {!source.image && isLethal && <div className="absolute inset-0 bg-red-900/50" />}
+
+      <div className="relative flex flex-col min-w-0 flex-1">
+        <span className="text-sm text-gray-100 truncate font-medium">
           {source.name}
         </span>
+        {source.playerName && (
+          <span className="text-xs text-gray-400 truncate">— {source.playerName}</span>
+        )}
         {source.isPartner && (
           <span className="text-xs text-purple-400">Partner</span>
         )}
       </div>
 
-      <div className="flex items-center gap-2 ml-3">
+      <div className="relative flex items-center gap-2 ml-3">
         <button
           type="button"
           className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white font-bold text-lg select-none touch-manipulation"
