@@ -55,6 +55,18 @@ export async function searchCommanders(query: string): Promise<ScryfallCard[]> {
 }
 
 /**
+ * Resolve a commander's art-crop image URL from its name via Scryfall.
+ * Prefers an exact name match, falling back to the first result.
+ * Returns '' when the name is empty or nothing is found.
+ */
+export async function resolveCommanderArt(name: string): Promise<string> {
+  if (!name) return ''
+  const results = await searchCommanders(name)
+  const card = results.find((c) => c.name === name) || results[0]
+  return card ? getCardImageUrl(card, 'art_crop') || '' : ''
+}
+
+/**
  * Get the image URL for a card, handling double-faced cards.
  */
 export function getCardImageUrl(card: ScryfallCard, size: 'small' | 'normal' | 'art_crop' = 'small'): string | null {

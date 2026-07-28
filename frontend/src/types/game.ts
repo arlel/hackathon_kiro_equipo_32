@@ -75,8 +75,10 @@ export interface DeckRecord {
   partnerImage?: string
   format: GameFormat
   status: 'active' | 'inactive'
-  totalGames: number
-  winRate: number
+  // Play stats are NOT returned by /decks/ — they come from the by-deck stats
+  // endpoint and are merged in the UI. Optional to reflect the API response.
+  totalGames?: number
+  winRate?: number
   lastUsedAt?: string
 }
 

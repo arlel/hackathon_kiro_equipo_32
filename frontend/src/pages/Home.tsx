@@ -92,7 +92,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-950 text-white">
-      <h1 className="text-4xl font-bold text-purple-400 mb-2">⚔️ MTG Life Counter</h1>
+      <h1 className="text-4xl font-bold text-purple-400 mb-2">⚔️ MTG Kiro Life Counter</h1>
       <p className="text-gray-400 mb-4">{t('home.subtitle')}</p>
       <div className="mb-8">
         <LanguageSwitcher />

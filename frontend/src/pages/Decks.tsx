@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useTranslation } from '@/i18n/I18nContext'
-import { listDecks, createDeck, updateDeck, deleteDeck } from '@/services/api'
+import { listDecks, createDeck, updateDeck, deleteDeck, getStatsByDeck } from '@/services/api'
 import CommanderSearch from '@/components/CommanderSearch'
 import type { DeckRecord, GameFormat } from '@/types/game'
 
@@ -26,6 +26,8 @@ export default function Decks() {
   const [creating, setCreating] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Play stats keyed by deck id, merged from the by-deck stats endpoint.
+  const [deckStats, setDeckStats] = useState<Record<string, { totalGames: number; winRate: number }>>({})
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -38,8 +40,18 @@ export default function Decks() {
   async function fetchDecks() {
     try {
       setLoading(true)
-      const data = await listDecks()
+      // /decks/ doesn't carry play stats, so pull them from the stats endpoint
+      // and merge by deck id. Stats must not block the deck list if they fail.
+      const [data, stats] = await Promise.all([
+        listDecks(),
+        getStatsByDeck().catch(() => []),
+      ])
       setDecks(data)
+      const statsMap: Record<string, { totalGames: number; winRate: number }> = {}
+      for (const s of stats) {
+        statsMap[s.deckId] = { totalGames: s.totalGames, winRate: s.winRate }
+      }
+      setDeckStats(statsMap)
     } catch (err) {
       console.error('Error fetching decks:', err)
     } finally {
@@ -267,8 +279,8 @@ export default function Decks() {
 
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                     <span className="uppercase tracking-wide">{t(`format.${deck.format}`)}</span>
-                    <span>{t('decks.gamesSuffix', { count: deck.totalGames })}</span>
-                    <span>{t('decks.winsSuffix', { rate: deck.winRate })}</span>
+                    <span>{t('decks.gamesSuffix', { count: deckStats[deck.id]?.totalGames ?? 0 })}</span>
+                    <span>{t('decks.winsSuffix', { rate: deckStats[deck.id]?.winRate ?? 0 })}</span>
                   </div>
                 </div>
 

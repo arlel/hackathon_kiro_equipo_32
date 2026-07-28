@@ -13,7 +13,7 @@ import StarterPicker from '@/components/StarterPicker'
 import RoomSettings from '@/components/RoomSettings'
 import DisplaySettings, { type DisplayMode } from '@/components/DisplaySettings'
 import type { ScryfallCard } from '@/services/scryfall'
-import { getCardImageUrl } from '@/services/scryfall'
+import { getCardImageUrl, resolveCommanderArt } from '@/services/scryfall'
 import { useTranslation } from '@/i18n/I18nContext'
 
 // ═══════════════════════════════════════════════════════
@@ -69,7 +69,7 @@ export default function Game() {
   }
 
   // Deck selector handler
-  const handleDeckSelect = (deck: {
+  const handleDeckSelect = async (deck: {
     id: string
     commanderName?: string
     commanderImage?: string
@@ -79,9 +79,17 @@ export default function Game() {
     setDeckId(deck.id)
     if (deck.commanderName) {
       setCommanderName(deck.commanderName)
-      setCommanderImage(deck.commanderImage || '')
       setPartnerName(deck.partnerName || '')
       setPartnerImage(deck.partnerImage || '')
+      // Use the stored art if present; otherwise look it up on Scryfall so the
+      // commander image is populated even for decks saved without one.
+      if (deck.commanderImage) {
+        setCommanderImage(deck.commanderImage)
+      } else if (format === 'commander') {
+        setCommanderImage(await resolveCommanderArt(deck.commanderName))
+      } else {
+        setCommanderImage('')
+      }
     }
   }
 

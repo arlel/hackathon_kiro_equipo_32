@@ -14,7 +14,7 @@ import CommanderSearch from '@/components/CommanderSearch'
 import DeckSelector from '@/components/DeckSelector'
 import RoomSettings from '@/components/RoomSettings'
 import type { ScryfallCard } from '@/services/scryfall'
-import { getCardImageUrl, searchCommanders } from '@/services/scryfall'
+import { getCardImageUrl, searchCommanders, resolveCommanderArt } from '@/services/scryfall'
 
 type Phase = 'config' | 'players' | 'playing'
 
@@ -413,13 +413,20 @@ export default function LocalGame() {
               {isAuthenticated && (
                 <DeckSelector
                   format={room.config.format}
-                  onSelect={(deck) => {
+                  onSelect={async (deck) => {
                     setNewDeckId(deck.id)
                     if (deck.commanderName) {
                       setNewCommanderName(deck.commanderName)
-                      setNewCommanderImage(deck.commanderImage || '')
                       setNewPartnerName(deck.partnerName || '')
                       setNewPartnerImage(deck.partnerImage || '')
+                      // Fall back to a Scryfall lookup when the deck has no stored art.
+                      if (deck.commanderImage) {
+                        setNewCommanderImage(deck.commanderImage)
+                      } else if (room.config.format === 'commander') {
+                        setNewCommanderImage(await resolveCommanderArt(deck.commanderName))
+                      } else {
+                        setNewCommanderImage('')
+                      }
                     }
                   }}
                 />

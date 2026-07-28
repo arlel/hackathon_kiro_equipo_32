@@ -271,12 +271,13 @@ class TestCreateDeck:
 
         assert response.status_code == 201
         data = response.json()
+        # DeckResponse serializes as camelCase (see CamelModel in schemas/deck.py)
         assert data["id"] == str(deck_id)
         assert data["name"] == "Atraxa Superfriends"
-        assert data["commander_name"] == "Atraxa, Praetors' Voice"
+        assert data["commanderName"] == "Atraxa, Praetors' Voice"
         assert data["format"] == "commander"
         assert data["status"] == "active"
-        assert "created_at" in data
+        assert "createdAt" in data
 
     def test_create_deck_without_auth_returns_401(
         self, client: TestClient, mock_db: AsyncMock
