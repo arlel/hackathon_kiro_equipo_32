@@ -312,8 +312,9 @@ export default function LocalGame() {
                       format={room.config.format}
                       onSelect={async (deck) => {
                         if (!room.players[0]) return
-                        if (deck.commanderName) {
-                          // Deck selected — assign commander
+                        // Use commanderName from deck, fallback to deck name for search
+                        const cmdName = deck.commanderName || ''
+                        if (deck.commanderName || deck.id) {
                           if (deck.commanderImage) {
                             updatePlayerCommander(room.players[0].id, {
                               commanderName: deck.commanderName,
@@ -321,20 +322,20 @@ export default function LocalGame() {
                               partnerName: deck.partnerName,
                               partnerImage: deck.partnerImage,
                             })
-                          } else {
+                          } else if (cmdName) {
                             // Search Scryfall for the commander image
-                            const results = await searchCommanders(deck.commanderName)
-                            const card = results.find(c => c.name === deck.commanderName) || results[0]
+                            const results = await searchCommanders(cmdName)
+                            const card = results.find(c => c.name === cmdName) || results[0]
                             const artUrl = card ? getCardImageUrl(card, 'art_crop') : ''
                             updatePlayerCommander(room.players[0].id, {
-                              commanderName: deck.commanderName,
+                              commanderName: cmdName,
                               commanderImage: artUrl || undefined,
                               partnerName: deck.partnerName,
                               partnerImage: deck.partnerImage,
                             })
                           }
                         } else {
-                          // "Sin mazo" — clear commander so user can search manually
+                          // "Sin mazo" — clear
                           updatePlayerCommander(room.players[0].id, {
                             commanderName: undefined,
                             commanderImage: undefined,
@@ -345,16 +346,10 @@ export default function LocalGame() {
                       }}
                     />
                   )}
-                  {/* Option 2: Search manually */}
+                  {/* Option 2: Search manually (uses separate state from add-player form) */}
                   <CommanderSearch
-                    value={newCommanderName}
-                    onChange={(name, card?: ScryfallCard) => {
-                      setNewCommanderName(name)
-                      if (card) {
-                        const artUrl = getCardImageUrl(card, 'art_crop')
-                        setNewCommanderImage(artUrl || '')
-                      }
-                    }}
+                    value=""
+                    onChange={() => {}}
                     onSelect={(commander, partner) => {
                       if (room.players[0]) {
                         updatePlayerCommander(room.players[0].id, {
@@ -364,8 +359,6 @@ export default function LocalGame() {
                           partnerImage: partner?.image,
                         })
                       }
-                      setNewCommanderName('')
-                      setNewCommanderImage('')
                     }}
                     placeholder="O buscar Commander..."
                   />

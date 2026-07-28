@@ -47,7 +47,7 @@ export default function DeckSelector({ format, onSelect }: DeckSelectorProps) {
     setSelectedDeckId(deck.id)
     onSelect({
       id: deck.id,
-      commanderName: deck.commanderName,
+      commanderName: deck.commanderName || deck.name,
       commanderImage: deck.commanderImage,
       partnerName: deck.partnerName,
       partnerImage: deck.partnerImage,
