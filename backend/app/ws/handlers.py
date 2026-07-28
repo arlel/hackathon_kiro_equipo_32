@@ -25,6 +25,7 @@ def _safe_uuid(value: str | None) -> uuid.UUID | None:
     except (ValueError, AttributeError, TypeError):
         return None
 
+
 FORMAT_LIFE = {
     "commander": 40,
     "20vida": 20,
