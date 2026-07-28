@@ -222,6 +222,9 @@ function GameView({ roomCode, format, startingLife, poisonEnabled: initialPoison
   const handleStateUpdate = useCallback((state: StateUpdate) => {
     setPlayers(state.players)
     setTurnCount(state.turnCount)
+    // Server is authoritative on whether the game has begun, so the starter
+    // picker disappears for everyone once any player changes life/poison/damage.
+    setGameStarted(state.gameStarted ?? false)
     // Update room config from server (authoritative source)
     if (state.config) {
       setPoisonEnabled(state.config.poisonEnabled)

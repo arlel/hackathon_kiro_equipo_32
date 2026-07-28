@@ -3,7 +3,9 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from jose import JWTError, jwt
 
+from app.core.config import settings
 from app.core.database import async_session
 from app.models.game import Game, GamePlayer
 from app.ws.room_manager import room_manager
@@ -32,8 +34,19 @@ async def websocket_endpoint(
     turn_counter_enabled: str = Query("false"),
     starting_life: int = Query(0),
     deck_id: str = Query(""),
+    token: str = Query(""),
 ):
     await websocket.accept()
+
+    # Best-effort: resolve the account id from the JWT so online games can be
+    # attributed to the logged-in user (history + stats). Anonymous play still works.
+    user_id: str | None = None
+    if token:
+        try:
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            user_id = payload.get("sub")
+        except JWTError:
+            user_id = None
 
     actual_starting_life = starting_life if starting_life > 0 else FORMAT_LIFE.get(format, 40)
     room = room_manager.get_or_create_room(
@@ -71,6 +84,7 @@ async def websocket_endpoint(
         partner_name=partner_name,
         partner_image=partner_image,
         deck_id=deck_id if deck_id else None,
+        user_id=user_id,
     )
 
     # Broadcast updated state to all players
@@ -156,7 +170,9 @@ async def websocket_endpoint(
                             turn_counter_enabled=game_data["turn_counter_enabled"],
                             turn_count=game_data["turn_count"],
                             winner_id=None,
-                            creator_id=None,
+                            creator_id=uuid.UUID(game_data["creator_id"])
+                            if game_data.get("creator_id")
+                            else None,
                             is_local=game_data["is_local"],
                             started_at=datetime.now(timezone.utc),
                             ended_at=datetime.now(timezone.utc),
@@ -168,7 +184,9 @@ async def websocket_endpoint(
                             game_player = GamePlayer(
                                 id=uuid.uuid4(),
                                 game_id=game.id,
-                                user_id=None,
+                                user_id=uuid.UUID(p_data["user_id"])
+                                if p_data.get("user_id")
+                                else None,
                                 deck_id=uuid.UUID(p_data["deck_id"])
                                 if p_data.get("deck_id")
                                 else None,

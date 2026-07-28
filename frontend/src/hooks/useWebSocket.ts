@@ -14,6 +14,7 @@ export interface StateUpdate {
   format: string
   config: { poisonEnabled: boolean; turnCounterEnabled: boolean }
   turnCount: number
+  gameStarted?: boolean
   players: Player[]
   eliminationOrder: string[]
 }
@@ -74,6 +75,8 @@ export function useWebSocket(options: UseWebSocketOptions) {
       turn_counter_enabled: String(opts.turnCounterEnabled || false),
       starting_life: String(opts.startingLife || 0),
       deck_id: opts.deckId || '',
+      // Sent so the server can attribute online games to the logged-in account.
+      token: localStorage.getItem('token') || '',
     })
 
     const wsBase = import.meta.env.VITE_WS_URL

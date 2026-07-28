@@ -35,6 +35,7 @@ class PlayerState:
     elimination_order: int | None = None
     websocket: WebSocket | None = None
     deck_id: str | None = None
+    user_id: str | None = None  # account id when the player is logged in
     disconnected_at: datetime | None = None
 
 
@@ -49,6 +50,7 @@ class Room:
     elimination_counter: int = 0
     is_local: bool = False
     creator_id: str | None = None
+    game_started: bool = False  # flips true on the first life/poison/cmd change
 
     @property
     def format(self) -> str:
@@ -104,8 +106,13 @@ class RoomManager:
         partner_name: str = "",
         partner_image: str = "",
         deck_id: str | None = None,
+        user_id: str | None = None,
     ) -> PlayerState:
         """Add a player to a room or reconnect an existing player."""
+        # Remember the room creator (first authenticated player) for persistence.
+        if user_id and room.creator_id is None:
+            room.creator_id = user_id
+
         if player_id in room.players:
             # Reconnection — check 30-minute window
             player = room.players[player_id]
@@ -119,11 +126,15 @@ class RoomManager:
                     player.websocket = ws
                     player.is_connected = True
                     player.disconnected_at = None
+                    if user_id:
+                        player.user_id = user_id
                     return player
             else:
                 # Player is still marked as connected (e.g., rapid reconnect)
                 player.websocket = ws
                 player.is_connected = True
+                if user_id:
+                    player.user_id = user_id
                 return player
 
         # New player
@@ -136,6 +147,7 @@ class RoomManager:
             partner_name=partner_name,
             partner_image=partner_image,
             deck_id=deck_id,
+            user_id=user_id,
             websocket=ws,
         )
         return room.players[player_id]
@@ -156,12 +168,14 @@ class RoomManager:
         """Adjust a player's life total by the given amount."""
         if target_id in room.players:
             room.players[target_id].life += amount
+            room.game_started = True
 
     def adjust_poison(self, room: Room, target_id: str, amount: int) -> None:
         """Adjust a player's poison counters by the given amount, clamped to minimum 0."""
         if target_id in room.players:
             current = room.players[target_id].poison_counters
             room.players[target_id].poison_counters = max(0, current + amount)
+            room.game_started = True
 
     def apply_commander_damage_v2(
         self, room: Room, commander_source_id: str, to_id: str, amount: int
@@ -193,6 +207,7 @@ class RoomManager:
         # Negative change means damage decreased → life increases (subtract negative = add)
         player.life -= actual_change
         player.commander_damage[commander_source_id] = new_value
+        room.game_started = True
 
     def apply_commander_damage(self, room: Room, from_id: str, to_id: str, amount: int) -> None:
         """Apply commander damage from one player to another (legacy method)."""
@@ -321,6 +336,7 @@ class RoomManager:
                     "elimination_cause": p.elimination_cause,
                     "elimination_order": p.elimination_order,
                     "deck_id": p.deck_id,
+                    "user_id": p.user_id,
                 }
                 for p in room.players.values()
             ],
@@ -344,6 +360,7 @@ class RoomManager:
 
         room.turn_count = 0
         room.elimination_counter = 0
+        room.game_started = False
 
     def get_state_payload(self, room: Room) -> str:
         """Serialize the room state to a JSON string for broadcasting."""
@@ -386,6 +403,7 @@ class RoomManager:
                     "turnCounterEnabled": room.config.turn_counter_enabled,
                 },
                 "turnCount": room.turn_count,
+                "gameStarted": room.game_started,
                 "players": players_data,
                 "eliminationOrder": elimination_order,
             }
