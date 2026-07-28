@@ -51,6 +51,7 @@ class Room:
     is_local: bool = False
     creator_id: str | None = None
     game_started: bool = False  # flips true on the first life/poison/cmd change
+    finalized: bool = False  # true once the game has been persisted (save-once guard)
 
     @property
     def format(self) -> str:
@@ -299,20 +300,27 @@ class RoomManager:
         # Decrement the room counter
         room.elimination_counter -= 1
 
-    def finalize_game(self, room: Room, winner_id: str | None = None) -> dict[str, Any]:
-        """Prepare the room's final state for persistence.
+    def finalize_game(self, room: Room, winner_id: str | None = None) -> dict[str, Any] | None:
+        """Prepare the room's final state for persistence, exactly once.
 
         Collects all relevant game data (life totals, poison, commander damage,
         eliminations) into a dictionary suitable for creating Game and GamePlayer
         records in the database.
+
+        This is idempotent: the first call marks the room finalized and returns
+        the payload; any subsequent call returns ``None`` so the game is never
+        saved twice (e.g. if several players hit "end game" at once).
 
         Args:
             room: The room whose game is being finalized.
             winner_id: The player ID of the winner, or None if no winner.
 
         Returns:
-            A dictionary with all data needed for game persistence.
+            A dict with all data needed for persistence, or None if already finalized.
         """
+        if room.finalized:
+            return None
+        room.finalized = True
         return {
             "room_code": room.code,
             "format": room.format,
@@ -361,6 +369,7 @@ class RoomManager:
         room.turn_count = 0
         room.elimination_counter = 0
         room.game_started = False
+        room.finalized = False  # allow the rematch to be saved
 
     def get_state_payload(self, room: Room) -> str:
         """Serialize the room state to a JSON string for broadcasting."""

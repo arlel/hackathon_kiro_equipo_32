@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -11,6 +12,18 @@ from app.models.game import Game, GamePlayer
 from app.ws.room_manager import room_manager
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _safe_uuid(value: str | None) -> uuid.UUID | None:
+    """Parse a UUID string, returning None instead of raising on bad input so a
+    single malformed id can't abort the whole game save."""
+    if not value:
+        return None
+    try:
+        return uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return None
 
 FORMAT_LIFE = {
     "commander": 40,
@@ -156,9 +169,32 @@ async def websocket_endpoint(
 
             elif action == "end_game":
                 winner_id = message.get("winnerId")
-                game_data = room_manager.finalize_game(room, winner_id)
+                winner_name = (
+                    room.players[winner_id].username
+                    if winner_id and winner_id in room.players
+                    else None
+                )
+                game_ended_msg = json.dumps(
+                    {
+                        "type": "game_ended",
+                        "winnerId": winner_id,
+                        "winnerName": winner_name,
+                    }
+                )
 
-                # Persist game and players to database (best-effort)
+                # Idempotent: only the first end_game persists the game. Concurrent
+                # "end game" clicks from other players return None here and skip the
+                # save, so a single game is never written twice.
+                game_data = room_manager.finalize_game(room, winner_id)
+                if game_data is None:
+                    try:
+                        await websocket.send_text(game_ended_msg)
+                    except Exception:
+                        pass
+                    continue
+
+                # Persist game and all players (best-effort). Each logged-in player
+                # carries their own user_id, so every account's stats get updated.
                 try:
                     async with async_session() as session:
                         game = Game(
@@ -170,9 +206,7 @@ async def websocket_endpoint(
                             turn_counter_enabled=game_data["turn_counter_enabled"],
                             turn_count=game_data["turn_count"],
                             winner_id=None,
-                            creator_id=uuid.UUID(game_data["creator_id"])
-                            if game_data.get("creator_id")
-                            else None,
+                            creator_id=_safe_uuid(game_data.get("creator_id")),
                             is_local=game_data["is_local"],
                             started_at=datetime.now(timezone.utc),
                             ended_at=datetime.now(timezone.utc),
@@ -184,12 +218,8 @@ async def websocket_endpoint(
                             game_player = GamePlayer(
                                 id=uuid.uuid4(),
                                 game_id=game.id,
-                                user_id=uuid.UUID(p_data["user_id"])
-                                if p_data.get("user_id")
-                                else None,
-                                deck_id=uuid.UUID(p_data["deck_id"])
-                                if p_data.get("deck_id")
-                                else None,
+                                user_id=_safe_uuid(p_data.get("user_id")),
+                                deck_id=_safe_uuid(p_data.get("deck_id")),
                                 player_name=p_data["username"],
                                 commander_name=p_data["commander_name"],
                                 partner_name=p_data["partner_name"],
@@ -203,24 +233,10 @@ async def websocket_endpoint(
                             session.add(game_player)
 
                         await session.commit()
-                except Exception as e:
-                    import logging
-
-                    logging.getLogger(__name__).warning("Failed to persist game to database: %s", e)
+                except Exception:
+                    logger.exception("Failed to persist online game to database")
 
                 # Broadcast game_ended message to all players
-                winner_name = (
-                    room.players[winner_id].username
-                    if winner_id and winner_id in room.players
-                    else None
-                )
-                game_ended_msg = json.dumps(
-                    {
-                        "type": "game_ended",
-                        "winnerId": winner_id,
-                        "winnerName": winner_name,
-                    }
-                )
                 for player in room.players.values():
                     if player.websocket and player.is_connected:
                         try:
