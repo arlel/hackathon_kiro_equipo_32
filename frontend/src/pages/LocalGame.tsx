@@ -323,6 +323,7 @@ export default function LocalGame() {
                               commanderImage: deck.commanderImage,
                               partnerName: deck.partnerName,
                               partnerImage: deck.partnerImage,
+                              deckId: deck.id || undefined,
                             })
                           } else if (cmdName) {
                             // Search Scryfall for the commander image
@@ -334,15 +335,17 @@ export default function LocalGame() {
                               commanderImage: artUrl || undefined,
                               partnerName: deck.partnerName,
                               partnerImage: deck.partnerImage,
+                              deckId: deck.id || undefined,
                             })
                           }
                         } else {
-                          // "Sin mazo" — clear
+                          // "Sin mazo" — clear commander and deck association
                           updatePlayerCommander(room.players[0].id, {
                             commanderName: undefined,
                             commanderImage: undefined,
                             partnerName: undefined,
                             partnerImage: undefined,
+                            deckId: undefined,
                           })
                         }
                       }}
@@ -359,6 +362,8 @@ export default function LocalGame() {
                           commanderImage: commander.image,
                           partnerName: partner?.name,
                           partnerImage: partner?.image,
+                          // Manual pick isn't a saved deck — drop any deck association.
+                          deckId: undefined,
                         })
                       }
                     }}

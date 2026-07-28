@@ -39,6 +39,55 @@ describe('useLocalRoom', () => {
     })
   })
 
+  describe('deck tracking', () => {
+    it('keeps a deck id set via updatePlayerCommander in the end-game result', () => {
+      // Regression: the host picks a saved deck through the commander picker
+      // (updatePlayerCommander). Its deck id must survive to the save payload
+      // so by-deck stats can be attributed to the user.
+      const { result } = renderHook(() => useLocalRoom())
+
+      act(() => {
+        result.current.createRoom(commanderConfig)
+      })
+      act(() => {
+        result.current.addPlayer('Host', {}) // host auto-added without a deck
+      })
+      act(() => {
+        result.current.addPlayer('Rival', {})
+      })
+
+      const hostId = result.current.room!.players[0].id
+      act(() => {
+        result.current.updatePlayerCommander(hostId, {
+          commanderName: 'Atraxa',
+          deckId: 'deck-123',
+        })
+      })
+
+      expect(result.current.room!.players[0].deckId).toBe('deck-123')
+
+      let saved: ReturnType<typeof result.current.endGame> = null
+      act(() => {
+        saved = result.current.endGame(hostId)
+      })
+
+      expect(saved!.players[0].deckId).toBe('deck-123')
+    })
+
+    it('preserves a deck id provided at addPlayer time', () => {
+      const { result } = renderHook(() => useLocalRoom())
+
+      act(() => {
+        result.current.createRoom(commanderConfig)
+      })
+      act(() => {
+        result.current.addPlayer('Alice', { commanderName: 'Atraxa', deckId: 'deck-abc' })
+      })
+
+      expect(result.current.room!.players[0].deckId).toBe('deck-abc')
+    })
+  })
+
   describe('addPlayer', () => {
     it('adds players with correct starting life from config', () => {
       const { result } = renderHook(() => useLocalRoom())

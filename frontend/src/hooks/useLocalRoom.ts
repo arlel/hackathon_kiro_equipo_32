@@ -319,6 +319,7 @@ export function useLocalRoom() {
     commanderImage?: string
     partnerName?: string
     partnerImage?: string
+    deckId?: string
   }) => {
     setRoom(prev => {
       if (!prev) return prev
