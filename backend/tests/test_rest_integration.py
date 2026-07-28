@@ -324,12 +324,12 @@ class TestGetStats:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["total_games"] == 10
+        assert data["totalGames"] == 10
         assert data["wins"] == 6
-        assert data["win_rate"] == 60.0
-        assert data["eliminations_by_normal"] == 2
-        assert data["eliminations_by_commander"] == 3
-        assert data["eliminations_by_poison"] == 1
+        assert data["winRate"] == 60.0
+        assert data["eliminationsByNormal"] == 2
+        assert data["eliminationsByCommander"] == 3
+        assert data["eliminationsByPoison"] == 1
 
     def test_get_stats_without_auth_returns_401(
         self, client: TestClient, mock_db: AsyncMock
